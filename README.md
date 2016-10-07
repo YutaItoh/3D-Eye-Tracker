@@ -71,5 +71,5 @@ Some debug keys are pre-assigned for a better control of the software:
 # Acknowledgements
 
 This program integrated/modified several existing codes. Especially, 
-* [2D pupil detection code](http://www.jeoresearch.com/research) by Jason Orloski
+* [2D pupil detection code](https://github.com/YutaItoh/3D-Eye-Tracker/blob/master/main/pupilFitter.h) by [Jason Orlosky](http://www.jeoresearch.com/research)
 * [3D eye model optimization code](https://github.com/LeszekSwirski/singleeyefitter ) by Leszek Swirski 
