@@ -12,7 +12,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/flann/flann.hpp>
 
-#include "iris_util.h"
+#include "eye_util.h"
 
 //#include <pupiltracker/pupiltracker.h>
 #include <singleeyefitter/singleeyefitter.h>
