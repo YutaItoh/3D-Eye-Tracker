@@ -2075,52 +2075,8 @@ int processDir(string path,
 
 int main(int, char**)
 {
-	//initialize background subtractors
-	pMOG = new BackgroundSubtractorMOG();
-	pMOG2_1 = new BackgroundSubtractorMOG2();
-	pMOG2_2 = new BackgroundSubtractorMOG2();
-	pGMG = new BackgroundSubtractorGMG();
-
 	threshDebug = true;
 
-
-	//Yuta's stuff
-	//processDir("C:\\Documents\\Osaka\\Research\\Parkinson Study Data\\Raw Videos - Named\\P0A\\", 12, 0, 0, 15, 35, 90, 15, 20);
-	//Jihad's stuff
-	//processDir("C:\\Documents\\Osaka\\Research\\Parkinson Study Data\\Raw Videos - Named\\P0B\\", 10, 60, 20, 15, 35, 130, 15, 20);
-
-	processDir("C:\\Documents\\Osaka\\Research\\Parkinson Study Data\\Raw Videos - Named\\P0\\", 20, 0, 20, 10, 45, 320, 9, 20);
-	processDir("C:\\Documents\\Osaka\\Research\\Parkinson Study Data\\Raw Videos - Named\\P1\\", 20, 0, 20, 10, 40, 270, 8, 20);
-	processDir("C:\\Documents\\Osaka\\Research\\Parkinson Study Data\\Raw Videos - Named\\P3\\", 20, 0, 20, 10, 20, 150, 8, 20);
-
-	//some invalid
-	processDir("C:\\Documents\\Osaka\\Research\\Parkinson Study Data\\Raw Videos - Named\\P4\\", 20, 0, 20, 10, 14, 205, 8, 12);
-	processDir("C:\\Documents\\Osaka\\Research\\Parkinson Study Data\\Raw Videos - Named\\P5\\", 20, 0, 20, 10, 40, 170, 8, 20);
-	processDir("C:\\Documents\\Osaka\\Research\\Parkinson Study Data\\Raw Videos - Named\\P6\\", 20, 0, 20, 10, 20, 220, 10, 20);
-
-	//some invalid
-	processDir("C:\\Documents\\Osaka\\Research\\Parkinson Study Data\\Raw Videos - Named\\P7\\", 20, 0, 20, 10, 15, 240, 7, 14);
-	processDir("C:\\Documents\\Osaka\\Research\\Parkinson Study Data\\Raw Videos - Named\\P8\\", 20, 0, 20, 10, 60, 170, 8, 15);
-
-	//need to reset high ROI based on low centroid ~~
-	processDir("C:\\Documents\\Osaka\\Research\\Parkinson Study Data\\Raw Videos - Named\\P9\\", 20, 0, 20, 10, 20, 210, 8, 20);
-
-	processDir("C:\\Documents\\Osaka\\Research\\Parkinson Study Data\\Raw Videos - Named\\P10\\", 20, 0, 20, 20, 30, 170, 8, 20);
-	processDir("C:\\Documents\\Osaka\\Research\\Parkinson Study Data\\Raw Videos - Named\\P11\\", 20, 0, 150, 15, 60, 220, 10, 24);
-	processDir("C:\\Documents\\Osaka\\Research\\Parkinson Study Data\\Raw Videos - Named\\P12\\", 20, 0, 20, 10, 30, 210, 8, 15);
-	processDir("C:\\Documents\\Osaka\\Research\\Parkinson Study Data\\Raw Videos - Named\\P13\\", 30, 160, 80, 11, 20, 140, 8, 13);
-	processDir("C:\\Documents\\Osaka\\Research\\Parkinson Study Data\\Raw Videos - Named\\P14\\", 20, 0, 20, 25, 45, 230, 18, 35);
-	processDir("C:\\Documents\\Osaka\\Research\\Parkinson Study Data\\Raw Videos - Named\\P15\\", 20, 0, 20, 10, 30, 130, 8, 15);
-
-	//need to reset high ROI based on low centroid ~~
-	processDir("C:\\Documents\\Osaka\\Research\\Parkinson Study Data\\Raw Videos - Named\\P16\\", 20, 0, 20, 8, 25, 240, 3, 9);
-	erodeOn = false;
-	processDir("C:\\Documents\\Osaka\\Research\\Parkinson Study Data\\Raw Videos - Named\\P17\\", 20, 0, 20, 10, 20, 230, 6, 12);
-	erodeOn = true;
-	//probably invalid //can maybe fix with ROI reset???? 
-	processDir("C:\\Documents\\Osaka\\Research\\Parkinson Study Data\\Raw Videos - Named\\P2\\", 40, 50, 220, 10, 25, 150, 8, 20);
-
-	// the camera will be deinitialized automatically in VideoCapture destructor
 	return 0;
 }
 #endif
