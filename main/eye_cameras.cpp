@@ -9,7 +9,7 @@
 //#include <spdlog/spdlog.h>
 //#include <plog/Log.h> // Step1: include the header.
 
-namespace eyecamera
+namespace eye_tracker
 {
 namespace fs = boost::filesystem;
 	
@@ -18,7 +18,7 @@ void record_eyecams_mono_interactive(){
 
 	// Open and check cameras
 	cv::Mat images[kCcameraNums];
-	eyecamera::EyeCamera eyecams[kCcameraNums] = { eyecamera::EyeCamera(0,true)};
+	EyeCamera eyecams[kCcameraNums] = { EyeCamera(0,true)};
 	std::string window_names[kCcameraNums] = { "Cam0" };
 	for (size_t cam = 0; cam < kCcameraNums; cam++){
 		// Check if the cameras are opened
@@ -99,9 +99,9 @@ void record_eyecams_mono(){
 	const size_t kCcameraNums = 1;
 
 	// Open and check cameras
-	std::vector<std::unique_ptr<eyecamera::EyeCameraParent>> eyecams(kCcameraNums); // Image sources
+	std::vector<std::unique_ptr<eye_tracker::EyeCameraParent>> eyecams(kCcameraNums); // Image sources
 	cv::Mat images[kCcameraNums];
-	eyecams[0] = std::make_unique<eyecamera::EyeCameraDS>("Pupil Cam1 ID2");
+	eyecams[0] = std::make_unique<eye_tracker::EyeCameraDS>("Pupil Cam1 ID2");
 	std::string window_names[kCcameraNums] = { "Cam0" };
 	for (size_t cam = 0; cam < kCcameraNums; cam++){
 		// Check if the cameras are opened
@@ -187,7 +187,7 @@ void record_eyecams(){
 
 	// Open and check cameras
 	cv::Mat images[kCcameraNums];
-	eyecamera::EyeCamera eyecams[kCcameraNums] = { eyecamera::EyeCamera(0), eyecamera::EyeCamera(2, true) };
+	EyeCamera eyecams[kCcameraNums] = { EyeCamera(0), EyeCamera(2, true) };
 	std::string window_names[kCcameraNums] = { "Cam0", "Cam1" };
 	for (size_t cam = 0; cam < kCcameraNums; cam++){
 		// Check if the cameras are opened

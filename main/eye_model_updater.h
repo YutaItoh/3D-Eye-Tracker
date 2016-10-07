@@ -2,7 +2,7 @@
 #define EYE_MODEL_UPDATER_H
 
 
-#define NOMINMAX
+//#define NOMINMAX
 
 #include <vector>
 #include <algorithm>
@@ -12,7 +12,6 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/flann/flann.hpp>
 
-#include "eye_util.h"
 
 //#include <pupiltracker/pupiltracker.h>
 #include <singleeyefitter/singleeyefitter.h>
@@ -24,14 +23,30 @@
 #include <singleeyefitter/Sphere.h>
 
 
+//#include "eye_util.h"
+
+
 namespace eye_tracker{
+
+
+	
+// Some utility functions
+cv::Point2f     toImgCoord(const cv::Point2f& point, const cv::Mat& m, double scale = 1, int shift = 0);
+cv::Point       toImgCoord(const cv::Point&   point, const cv::Mat& m, double scale = 1, int shift = 0);
+cv::RotatedRect toImgCoord(const cv::RotatedRect& rect, const cv::Mat& m, float scale = 1);
+cv::Point2f     toImgCoordInv(const cv::Point2f& point, const cv::Mat& m, double scale = 1, int shift = 0);
+cv::Point       toImgCoordInv(const cv::Point&   point, const cv::Mat& m, double scale = 1, int shift = 0);
+cv::RotatedRect toImgCoordInv(const cv::RotatedRect& rect, const cv::Mat& m, float scale = 1);
 
 namespace sef = singleeyefitter;
 
 void space_bin_searcher_test();
 
 
-// A class helps to pick 2D ellipse samples uniformly over the 2D image space 
+/**
+* @class SpaceBinSearcher
+* @brief IA support class to sample 2D ellipse observation uniformly over the 2D image space 
+*/
 class SpaceBinSearcher
 {
 public:
