@@ -1,0 +1,74 @@
+# HOW TO BUILD (A) LIBRAR-Y/IES FROM A MODULE
+# Building libraries from modules should be consistent for each module.
+# Use the following scheme for each new library created:
+#
+# a) Check for required libraries. If they are not available return False and export flags if needed
+# b) Define the src-subdirectories for which the library should be compiled
+#    and glob all files in there
+# c) Define a [LIBRARY]_options variable for the library containing all dependencies
+#    from other libraries. Create a clone from the master environment and add those options.
+# d) WINDOWS ONLY: Create a header file which implements dll interface functionality
+#    dependent from a [LIBRARY]_DLL define. If the define is set, the dll should be exported,
+#    if not, the dll should be imported. Set the define in the preprocessor options for the environment.
+# e) Build the library!
+# f) Remove all entries for (at least) the LIBS and LIBPATH keys in the options and
+#    add only the newly-compiled library as a dependcy. This will avoid multiple includes
+#    of libraries. Also verify that the import/export-switch define is not set.
+# g) Export the options so that other libraries can base on this library
+# h) Optionally setup help and ide projects
+#
+# The use of options and possibility to export them makes hierarchical build environments
+# obsolete. Avoid exporting new environments to the build system.
+
+import glob
+import os.path
+import sys
+
+have_utvision = False
+
+Import( '*' )
+
+# a)
+if not (sys.platform == "win32" and have_utvision):
+	print "utVision missing or not on ms windows -- not building DirectShowFrameGrabber"	
+	result = False
+	Return ('result')
+	
+
+
+# b)
+headers = globSourceFiles( '*.h' )
+sources = globSourceFiles( '*.cpp' ) 
+sources += globSourceFiles( '*.c' )
+
+if have_directshow:
+	for src in [ 'DirectShowInterfaces_i.c' ]:
+		sources.remove( src );
+
+# c)
+framegrabber_options = mergeOptions(utvision_all_options, utdataflow_all_options, directshow_options)
+env = masterEnv.Clone()
+env.AppendUnique( **framegrabber_options )	
+
+if have_directshow:
+	env.AppendUnique(directshow_options)
+	env.Append( CPPDEFINES = [ 'HAVE_DIRECTSHOW'] )
+
+env.AppendUnique( LIBS = [ "ole32", "oleaut32" ] )
+
+# d)
+# library is component, nothing to export
+
+# e)
+# compile all source files into single library
+# {buildenvironment, source files, name of the library, build target}
+setupSingleComponentBuild(env, sources, "DirectShowFrameGrabber", "DirectShowFrameGrabber")
+
+# f)
+# nothing to do this time
+
+# g)
+# nothing to do this time
+
+# h)
+createVisualStudioProject(env, sources, headers, "DirectShowFrameGrabber")
