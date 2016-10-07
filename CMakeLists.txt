@@ -75,7 +75,14 @@ else()
     set(spii_LIBRARIES "")
 endif()
 message(STATUS "spii_LIBRARIES:\"${spii_LIBRARIES}\"")
+# copy dll
+file(COPY ${SPII_INSTALL_DIR}/bin/spii.dll DESTINATION ${PROJECT_BINARY_DIR}/main)
 
+# copy OpenCV dlls
+file(GLOB OPENCV_DLLS
+  "${OpenCV_DIR}/x64/vc14/bin/*.dll"
+)
+file(COPY ${OPENCV_DLLS} DESTINATION ${PROJECT_BINARY_DIR}/main)
 
 message(STATUS "")
 message(STATUS "--- Include directories ---" )
