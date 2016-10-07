@@ -6,7 +6,7 @@ Our software is designed for a wearable eye-tracking scenario where a user wears
 
 ![headset_and_image](https://raw.githubusercontent.com/YutaItoh/3D-Eye-Tracker/master/docs/headset_and_image.png)
 
-With this software, you can obtain following information:
+With this software, you can obtain the following information:
 
 * 3D information:
   * Gaze (normal) vector
@@ -20,7 +20,7 @@ With this software, you can obtain following information:
 
 ## Prerequisite
 
-Currently, the software is compatible with Visual Studio 2015. We tested compilation on a 64bit Windows 10 machine only.
+Currently, the software is compatible with Visual Studio 2015. The test was only done on a 64bit Windows 10 machine only.
 
 Most of external libraries (for vc14, x64) are bundled in `./external`, yet you still need to 
 install the following two libraries:
