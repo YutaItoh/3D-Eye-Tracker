@@ -68,7 +68,7 @@ Some debug keys are pre-assigned for a better control of the software:
 * `r`: Resets the 3D eye model and 2D observations and restarts the initialization step
 * `ESC`: Exit the program 	
 
-# Acknowledgement
+# Acknowledgements
 
 This program integrated/modified several existing codes. Especially, 
 * [2D pupil detection code](http://www.jeoresearch.com/research) by Jason Orloski
