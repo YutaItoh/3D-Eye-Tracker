@@ -26,7 +26,6 @@
 #include <opencv2/calib3d/calib3d.hpp>
 #include <opencv2/photo/photo.hpp>
 
-#define NOMINMAX
 
 #include "pupilFitter.h" // 2D pupil detector
 
@@ -37,73 +36,7 @@
 
 
  
-namespace eye_tracker {
-
-class FrameRateCounter
-{
-public:
-	FrameRateCounter()
-		:frame_count_(0), kSkipFrameCount(50), fps_(0.0)	{
-		timer_.pause();
-	}
-	~FrameRateCounter(){}
-	double fps(){ return fps_; }
-	size_t frame_count() { return frame_count_; }
-	void count(){
-		if (frame_count_++ == kSkipFrameCount){
-			timer_.resume();/// Wait measuring time until the process gets stabilized
-		}
-		fps_ = (frame_count_ - kSkipFrameCount) / timer_.elapsed();
-		return;
-	}
-protected:
-	// Local variables initialized at the constructor
-	double time_total;
-	size_t frame_count_;
-	double fps_;
-	
-	// Local variables 
-	timer timer_;
-	const size_t kSkipFrameCount;
-
-private:
-	// Prevent copying
-	FrameRateCounter(const FrameRateCounter& other);
-	FrameRateCounter& operator=(const FrameRateCounter& rhs);
-};
-
-
-class CameraUndistorter
-{
-public:
-	CameraUndistorter(const cv::Mat &K, const cv::Vec<double, 8> &distCoeffs)
-		: K0_(K.clone()), distCoeffs_(distCoeffs)
-	{
-		std::cout << "Intrinsic (matrix): " << K0_ << std::endl;
-		std::cout << "Intrinsic (distortion): " << distCoeffs_ << std::endl;
-
-	}
-	~CameraUndistorter() {
-	}
-	void init_maps(const cv::Size &s) {
-		cv::initUndistortRectifyMap(K0_, distCoeffs_, cv::Mat(), K0_, s, CV_32FC1, mapx_, mapy_);
-	}
-	void undistort(const cv::Mat &in, cv::Mat &out) {
-		if (is_dist_map_initialized_ == false) {
-			init_maps(in.size());
-			is_dist_map_initialized_ = true;
-		}
-		cv::remap(in, out, mapx_, mapy_, cv::INTER_LINEAR);
-	}
-protected:
-	// Local variables initialized at the constructor
-	cv::Mat K0_;
-	cv::Vec<double, 8> distCoeffs_; // (k1 k2 p1 p2 [k3 [k4 k5 k6]])
-	bool is_dist_map_initialized_ = false;
-	cv::Mat mapx_, mapy_;
-private:
-	// Prevent copying
-};
+namespace {
 
 enum InputMode { CAMERA, CAMERA_MONO, VIDEO, IMAGE };
 
@@ -118,10 +51,10 @@ int main(int argc, char *argv[]){
 	bool kVisualization = false;
 	kVisualization = true;
 
-	eye_tracker::InputMode input_mode =
-		eye_tracker::InputMode::VIDEO;  // Set a video as a video source
-        // InputMode::CAMERA; // Set cameras as video sources
-		// InputMode::CAMERA_MONO; // Set cameras as video sources
+	InputMode input_mode =
+		//InputMode::VIDEO;  // Set a video as a video source
+        // InputMode::CAMERA; // Set two cameras as video sources
+		 InputMode::CAMERA_MONO; // Set a camera as video sources
 	    // InputMode::IMAGE;// Set an image as a video source
 
 
@@ -142,20 +75,20 @@ int main(int argc, char *argv[]){
 		if (media_file_ext == ".avi" ||
 			media_file_ext == ".mp4" ||
 			media_file_ext == ".wmv") {
-			input_mode = eye_tracker::InputMode::VIDEO;
+			input_mode = InputMode::VIDEO;
 		}else{
-			input_mode = eye_tracker::InputMode::IMAGE;
+			input_mode = InputMode::IMAGE;
 		}
 	}
 	else {
-		if (input_mode == eye_tracker::InputMode::IMAGE || input_mode == eye_tracker::InputMode::VIDEO) {
+		if (input_mode == InputMode::IMAGE || input_mode == InputMode::VIDEO) {
 			switch (input_mode)
 			{
-			case eye_tracker::InputMode::IMAGE:
+			case InputMode::IMAGE:
 				media_file = kDir + "data3/test.png";
 				media_file_stem = "test";
 				break;
-			case eye_tracker::InputMode::VIDEO:
+			case InputMode::VIDEO:
 				media_file = kDir + "out/test.avi";
 				media_file_stem = "test";
 				break;
@@ -186,12 +119,12 @@ int main(int argc, char *argv[]){
 	size_t kCameraNums;
 	switch (input_mode)
 	{
-	case eye_tracker::InputMode::IMAGE:
-	case eye_tracker::InputMode::VIDEO:
-	case eye_tracker::InputMode::CAMERA_MONO:
+	case InputMode::IMAGE:
+	case InputMode::VIDEO:
+	case InputMode::CAMERA_MONO:
 		kCameraNums = 1;
 		break;
-	case eye_tracker::InputMode::CAMERA:
+	case InputMode::CAMERA:
 		kCameraNums = 2;
 		break;
 	default:
@@ -201,7 +134,7 @@ int main(int argc, char *argv[]){
 
 	// Setup of classes that handle monocular/stereo camera setups
 	// We can encapslate them into a wrapper class in future update
-	std::vector<std::unique_ptr<eyecamera::EyeCameraParent>> eyecams(kCameraNums);                 // Image sources
+	std::vector<std::unique_ptr<eye_tracker::EyeCameraParent>> eyecams(kCameraNums);                 // Image sources
 	std::vector<std::unique_ptr<eye_tracker::CameraUndistorter>> camera_undistorters(kCameraNums); // Camera undistorters
 	std::vector<std::string> window_names(kCameraNums);                                            // Window names
 	std::vector<cv::Mat> images(kCameraNums);                                                      // buffer images
@@ -213,31 +146,31 @@ int main(int argc, char *argv[]){
 	try{
 		switch (input_mode)
 		{
-		case eye_tracker::InputMode::IMAGE:
-			eyecams[0] = std::make_unique<eyecamera::EyeCamera>(media_file, false);
+		case InputMode::IMAGE:
+			eyecams[0] = std::make_unique<eye_tracker::EyeCamera>(media_file, false);
 			eye_model_updaters[0] = std::make_unique<eye_tracker::EyeModelUpdater>(focal_length, 5, 0.5);
 			camera_undistorters[0] = std::make_unique<eye_tracker::CameraUndistorter>(K, distCoeffs);
 			window_names = { "Video/Image" };
 			file_stems = { media_file_stem };
 			break;
-		case eye_tracker::InputMode::VIDEO:
-			eyecams[0] = std::make_unique<eyecamera::EyeCamera>(media_file, false);
+		case InputMode::VIDEO:
+			eyecams[0] = std::make_unique<eye_tracker::EyeCamera>(media_file, false);
 			eye_model_updaters[0] = std::make_unique<eye_tracker::EyeModelUpdater>(focal_length, 5, 0.5);
 			camera_undistorters[0] = std::make_unique<eye_tracker::CameraUndistorter>(K, distCoeffs);
 			window_names = { "Video/Image" };
 			file_stems = { media_file_stem };
 			break;
-		case eye_tracker::InputMode::CAMERA:
+		case InputMode::CAMERA:
 			camera_indices[0] = 0;
 			camera_indices[1] = 2;
 #if 0
 			// OpenCV HighGUI frame grabber
-			eyecams[0] = std::make_unique<eyecamera::EyeCamera>(camera_indices[0], false);
-			eyecams[1] = std::make_unique<eyecamera::EyeCamera>(camera_indices[1], false);
+			eyecams[0] = std::make_unique<eye_tracker::EyeCamera>(camera_indices[0], false);
+			eyecams[1] = std::make_unique<eye_tracker::EyeCamera>(camera_indices[1], false);
 #else
 			// DirectShow frame grabber
-			eyecams[0] = std::make_unique<eyecamera::EyeCameraDS>("Pupil Cam1 ID0");
-			eyecams[1] = std::make_unique<eyecamera::EyeCameraDS>("Pupil Cam1 ID2");
+			eyecams[0] = std::make_unique<eye_tracker::EyeCameraDS>("Pupil Cam1 ID0");
+			eyecams[1] = std::make_unique<eye_tracker::EyeCameraDS>("Pupil Cam1 ID2");
 #endif
 			eye_model_updaters[0] = std::make_unique<eye_tracker::EyeModelUpdater>(focal_length, 5, 0.5);
 			eye_model_updaters[1] = std::make_unique<eye_tracker::EyeModelUpdater>(focal_length, 5, 0.5);
@@ -246,8 +179,8 @@ int main(int argc, char *argv[]){
 			window_names = { "Cam0", "Cam1" };
 			file_stems = { "cam0", "cam1" };
 			break;
-		case eye_tracker::InputMode::CAMERA_MONO:
-			eyecams[0] = std::make_unique<eyecamera::EyeCameraDS>("Pupil Cam1 ID0"); //
+		case InputMode::CAMERA_MONO:
+			eyecams[0] = std::make_unique<eye_tracker::EyeCameraDS>("Pupil Cam1 ID0"); //
 			eye_model_updaters[0] = std::make_unique<eye_tracker::EyeModelUpdater>(focal_length, 5, 0.5);
 			camera_undistorters[0] = std::make_unique<eye_tracker::CameraUndistorter>(K, distCoeffs);
 			window_names = { "Cam0" };
