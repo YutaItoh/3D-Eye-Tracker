@@ -1,5 +1,5 @@
-#ifndef IRIS_UTIL_H
-#define IRIS_UTIL_H
+#ifndef EYE_UTIL_H
+#define EYE_UTIL_H
 
 #include <opencv2/imgproc/imgproc.hpp>
 #include <Eigen/Dense>
@@ -16,5 +16,7 @@ namespace eye_tracker{
 	cv::Point       toImgCoordInv(const cv::Point&   point, const cv::Mat& m, double scale = 1, int shift = 0);
 	cv::RotatedRect toImgCoordInv(const cv::RotatedRect& rect, const cv::Mat& m, float scale = 1);
 
+
+
 }
-#endif // IRIS_UTIL_H
+#endif // EYE_UTIL_H
