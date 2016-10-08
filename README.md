@@ -1,8 +1,8 @@
 # 3D Eye Tracker
 
-This software aims to provide an easy-to-comiple C++ implementation of a 3D eye-tracking method.
+This software aims to provide an easy-to-compile C++ implementation of a 3D eye-tracking method.
 
-Our software is designed for a wearable eye-tracking scenario where a user wears a headset with an eye camera(s) which is equipped with infrared (IR) illuminations. The camera can capture close-up shots of the user's eyes.
+Our software is designed for a wearable eye-tracking scnenario where a user wears a headset with an eye camera(s) that is equipped with infrared (IR) illuminations. The camera can capture close-up shots of the user's eyes.
 
 ![headset_and_image](https://raw.githubusercontent.com/YutaItoh/3D-Eye-Tracker/master/docs/headset_and_image.png)
 
@@ -16,11 +16,11 @@ With this software, you can obtain the following information:
   * Pupil ellipse size [pixel] and angle [deg.]
   * Glint position(s) [pixel]
 
-
+[Sample video on youtube](https://www.youtube.com/watch?v=EH6UVQZgvJE) (a preliminary version and will be updated with a newer version soon).
 
 ## Prerequisite
 
-Currently, the software is compatible with Visual Studio 2015. The test was only done on a 64bit Windows 10 machine only.
+Currently, the software is compatible with Visual Studio 2015. The test was done on a 64bit Windows 10 machine only.
 
 Most of external libraries (for vc14, x64) are bundled in `./external`, yet you still need to 
 install the following two libraries:
@@ -38,11 +38,11 @@ To setup your own Visual Studio project, you need to use [CMake](https://cmake.o
    * `set(BOOST_ROOT "C:/SDK/boost_1_62_0")`
    * `set(OpenCV_DIR "C:/SDK/opencv-3.1.0/build")`
 3. Start CMake GUI and set a source code path (e.g., `/your-local-path/3D-Eye-Tracker`) and a project build path (e.g., `/your-local-path/3D-Eye-Tracker/build_vc14_x64`)
-![cmake-1](https://raw.githubusercontent.com/YutaItoh/3D-Eye-Tracker/master/docs/cmake-1.png)
+<img src="https://raw.githubusercontent.com/YutaItoh/3D-Eye-Tracker/master/docs/cmake-1.png" width="600px" />
 4. Press `Generate` buttons, then choose a right build environment (Visual Studio 14 2015 Win64)
-![cmake-2](https://raw.githubusercontent.com/YutaItoh/3D-Eye-Tracker/master/docs/cmake-2.png)
-![cmake-3](https://raw.githubusercontent.com/YutaItoh/3D-Eye-Tracker/master/docs/cmake-3.png)
-5. Open `3d_eye_tracker.sln` in the build folder, and compile `main` module
+<img src="https://raw.githubusercontent.com/YutaItoh/3D-Eye-Tracker/master/docs/cmake-2.png" width="300px" />
+<img src="https://raw.githubusercontent.com/YutaItoh/3D-Eye-Tracker/master/docs/cmake-3.png" width="600px" />
+5. Open `3d_eye_tracker.sln` in the build folder, and compile `main` module (recommend to set it as a startup project)
 
 ## How to run
 
@@ -54,12 +54,14 @@ The default setting uses a sinlge camera via the DirectShow filter. Check your c
 This case, the program tries to find a camera named `"Pupil Cam1 ID0"`.
 
 Once the program started, it initializes a 3D eye model from 2D pupil observatios:
-![runtime-2](https://raw.githubusercontent.com/YutaItoh/3D-Eye-Tracker/master/docs/runtime-2.png)
+
+<img src="https://raw.githubusercontent.com/YutaItoh/3D-Eye-Tracker/master/docs/runtime-2.png" width="600px" />
+
 In this initialization step, a user needs to smoothly rotate his/her eye to capture various 2D shapes of the eye.
 
 After the step, we get 3D eye tracking:
 
-![runtime-3](https://raw.githubusercontent.com/YutaItoh/3D-Eye-Tracker/master/docs/runtime-3.png)
+<img src="https://raw.githubusercontent.com/YutaItoh/3D-Eye-Tracker/master/docs/runtime-3.png" width="200px" />
 
 ### Tips:
 
@@ -71,5 +73,5 @@ Some debug keys are pre-assigned for a better control of the software:
 # Acknowledgements
 
 This program integrated/modified several existing codes. Especially, 
-* [2D pupil detection code](http://www.jeoresearch.com/research) by Jason Orloski
-* [3D eye model optimization code](https://github.com/LeszekSwirski/singleeyefitter ) by Leszek Swirski 
+* [2D pupil detection code](https://github.com/YutaItoh/3D-Eye-Tracker/blob/master/main/pupilFitter.h) by [Jason Orlosky](http://www.jeoresearch.com/research)
+* [3D eye model optimization code](https://github.com/LeszekSwirski/singleeyefitter) (./singleeyefitter) by Leszek Swirski 
