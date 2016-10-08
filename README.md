@@ -42,7 +42,8 @@ To setup your own Visual Studio project, you need to use [CMake](https://cmake.o
 4. Press `Generate` buttons, then choose a right build environment (Visual Studio 14 2015 Win64)
 <img src="https://raw.githubusercontent.com/YutaItoh/3D-Eye-Tracker/master/docs/cmake-2.png" width="300px" />
 <img src="https://raw.githubusercontent.com/YutaItoh/3D-Eye-Tracker/master/docs/cmake-3.png" width="600px" />
-5. Open `3d_eye_tracker.sln` in the build folder, and compile `main` module (recommend to set it as a startup project)
+5. Open `3d_eye_tracker.sln` in the build folder, and compile `main` project (recommend to set it as a startup project)
+<img src="https://raw.githubusercontent.com/YutaItoh/3D-Eye-Tracker/master/docs/setup-1.png" width="250px" />
 
 ## How to run
 
