@@ -16,7 +16,7 @@ With this software, you can obtain the following information:
   * Pupil ellipse size [pixel] and angle [deg.]
   * Glint position(s) [pixel]
 
-[Sample video on youtube](https://www.youtube.com/watch?v=EH6UVQZgvJE) (a preliminary version and will be updated with a newer version soon).
+[Sample video on youtube](https://www.youtube.com/watch?v=EH6UVQZgvJE) (this was taken from a preliminary version and will be updated with a newer version soon).
 
 ## Prerequisite
 
@@ -52,7 +52,7 @@ The default setting uses a sinlge camera via the DirectShow filter. Check your c
 		case InputMode::CAMERA_MONO:
 			eyecams[0]=std::make_unique<eyecamera::EyeCameraDS>("Pupil Cam1 ID0");
 ```
-This case, the program tries to find a camera named `"Pupil Cam1 ID0"`.
+In this case, the program tries to find a camera named `"Pupil Cam1 ID0"`.
 
 Once the program started, it initializes a 3D eye model from 2D pupil observatios:
 
