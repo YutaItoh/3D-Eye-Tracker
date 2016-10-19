@@ -14,7 +14,7 @@ With this software, you can obtain the following information:
   * Pupil diameter [m]
 * 2D information:
   * Pupil ellipse size [pixel] and angle [deg.]
-  * Glint position(s) [pixel]
+  * (Glint position(s) [pixel], to be merged soon...)
 
 [Sample video on youtube](https://www.youtube.com/watch?v=EH6UVQZgvJE) (this was taken from a preliminary version and will be updated with a newer version soon).
 
