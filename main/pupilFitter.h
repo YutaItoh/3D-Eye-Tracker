@@ -177,7 +177,7 @@ Fits an ellipse to a pupil area in an image
 
 		//refine points based on line fitting - Thanks Yuta! 
 		if (allPts.size() > 5) {
-			allPts = refinePoints(allPts, gray(cv::Rect(darkestPixelConfirm.x, darkestPixelConfirm.y, size2, size2)), 8, 2);
+			//allPts = refinePoints(allPts, gray(cv::Rect(darkestPixelConfirm.x, darkestPixelConfirm.y, size2, size2)), 8, 2);
 		}
 		else {
 			return false;
@@ -243,13 +243,14 @@ Fits an ellipse to a pupil area in an image
 				ellipse(thresh3, ellipseRaw, 255, 1, 8);
 				allPts = refinePoints(ellipseContour.at(0), thresh3, 10, 2);
 			}
-
+			/* //found that this additional refinement doesn't really help
 			if (ellipseContour.size() > 0 && ellipseContour.at(0).size() > 5) {
 				thresh3 = Mat::zeros(frameHeight, frameWidth, CV_8U);
 				RotatedRect ellipseRaw = fitEllipse(allPts);
 				ellipse(thresh3, ellipseRaw, 255, 1, 8);
 				allPts = refinePoints(ellipseContour.at(0), thresh3, 8, 1);
 			}
+			*/
 		}
 		else {
 			return false;
