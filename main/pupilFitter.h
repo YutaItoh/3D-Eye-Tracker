@@ -33,15 +33,18 @@ public:
 	void setDebug(bool threshDebug0){
 		threshDebug = threshDebug0;
 	};
+
 /**
 Fits an ellipse to a pupil area in an image
 @param gray BGR input image (converted to grayscale during search process)
+@param rr resulting RotatedRect representing the popil ellipse contour 
+@param allPtsReturn Point2f vector containing all 
 @return a RotatedRect representing the pupil ellipse, returns RotatedRect with all 0s if ellipse was not found
 */
-	bool pupilAreaFitRR(Mat &gray, RotatedRect &rr, vector<Point2f> &allPts,
-	int pupilSearchAreaIn = 20, int pupilSearchXMinIn = 0, int pupilSearchYMinIn = 0,
+bool pupilAreaFitRR(Mat &gray, RotatedRect &rr, vector<Point2f> &allPtsReturn,
+	int pupilSearchAreaIn = 10, int pupilSearchXMinIn = 0, int pupilSearchYMinIn = 0,
 	int lowThresholdCannyIn = 10, int highThresholdCannyIn = 30,
-		int sizeIn = 240, int darkestPixelL1In = 10, int darkestPixelL2In = 20) 
+	int sizeIn = 240, int darkestPixelL1In = 10, int darkestPixelL2In = 20) 
 	{
 
 		//global params (magic numbers) for setting, these should be set per-user, see main for params
@@ -54,7 +57,7 @@ Fits an ellipse to a pupil area in an image
 		pupilSearchArea = pupilSearchAreaIn; //default 20: for setting min size of pupil in pixels / 2 
 		pupilSearchXMin = pupilSearchXMinIn; //default 0: distance from left side of image to start pupil search  
 		pupilSearchYMin = pupilSearchYMinIn; //default 0: distance from right side of image to start pupil search  
-		erodeOn = true; //perform erode operation: turn off for one-offs, where eroding the image may actually hurt accuracy
+		erodeOn = false; //perform erode operation: turn off for one-offs, where eroding the image may actually hurt accuracy
 
 		//for timing funcitons
 		unsigned long long Int64 = 0;
@@ -68,7 +71,7 @@ Fits an ellipse to a pupil area in an image
 		darkestPixelConfirm = correctBounds(darkestPixelConfirm, size);
 
 		//find darkest pixel (for thresholding
-		int darkestPixel = getDarkestPixel(gray(cv::Rect(darkestPixelConfirm.x, darkestPixelConfirm.y, size, size)));
+		int darkestPixel = getDarkestPixelBetter(gray(cv::Rect(darkestPixelConfirm.x, darkestPixelConfirm.y, size, size)));
 
 		int kernel_size = 3;
 		int scale = 1;
@@ -94,7 +97,7 @@ Fits an ellipse to a pupil area in an image
 			imshow("threshLow", threshLow);
 			//waitKey(1);
 		}
-
+		 
 		//Find contours
 		std::vector<std::vector<cv::Point>> contoursLow;
 		cv::findContours(threshLow, contoursLow, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
@@ -158,10 +161,10 @@ Fits an ellipse to a pupil area in an image
 		}
 
 		//holds sets of candidate points for different points throughout refinement
-	//	vector<Point2f> allPts;
+	//	vector<Point> allPts;
 		allPts.resize(0);
-		vector<Point2f> allPts2;
-		vector<Point2f> allPtsHigh;
+		vector<Point> allPts2;
+		vector<Point> allPtsHigh;
 
 		//logical AND of contours and canny images
 		allPts = getCandidates(contoursLow, biggest, thresh3, false);
@@ -169,7 +172,7 @@ Fits an ellipse to a pupil area in an image
 
 		//merge remaining points for low and high point lists 
 		allPts.insert(allPts.end(), allPtsHigh.begin(), allPtsHigh.end());
-		std::vector<std::vector<cv::Point2f>> allPtsWithOutliers;
+		std::vector<std::vector<cv::Point>> allPtsWithOutliers;
 		allPtsWithOutliers.push_back(allPts);
 
 		//convert to gray for refinement
@@ -177,7 +180,14 @@ Fits an ellipse to a pupil area in an image
 
 		//refine points based on line fitting - Thanks Yuta! 
 		if (allPts.size() > 5) {
-			//allPts = refinePoints(allPts, gray(cv::Rect(darkestPixelConfirm.x, darkestPixelConfirm.y, size2, size2)), 8, 2);
+			allPts = refinePoints(allPts, gray(cv::Rect(darkestPixelConfirm.x, darkestPixelConfirm.y, size2, size2)), 
+				8, 2, gray(cv::Rect(darkestPixelConfirm.x, darkestPixelConfirm.y, size2, size2)), true);
+			//temp = gray.clone();
+			////add contours that also exist in canny, and if candidatesOn == true, mark checked on image
+			//for (int i = 0; i < allPts.size(); i++) {
+			//	temp.at<uchar>(Point2f(darkestPixelConfirm.x+allPts[i].x, darkestPixelConfirm.y+allPts[i].y)) = 255;
+			//}
+			//imshow("gray", temp);
 		}
 		else {
 			return false;
@@ -212,6 +222,9 @@ Fits an ellipse to a pupil area in an image
 				ellipse(thresh3, ellipseRaw, 255, 2, 8); //draw white ellipse 
 			}
 			allPts = getCandidates(allPtsWithOutliers, 0, thresh3, false);
+
+
+
 		}
 		else {
 			return false;
@@ -222,7 +235,8 @@ Fits an ellipse to a pupil area in an image
 
 		//refine points based on line fitting - Thanks Yuta! 
 		if (allPts.size() > 5) {
-			allPts = refinePoints(allPts, gray(cv::Rect(darkestPixelConfirm.x, darkestPixelConfirm.y, size2, size2)), 8, 2);
+			allPts = refinePoints(allPts, gray(cv::Rect(darkestPixelConfirm.x, darkestPixelConfirm.y, size2, size2)),
+				10, 2, gray(cv::Rect(darkestPixelConfirm.x, darkestPixelConfirm.y, size2, size2)), true);
 		}
 		else {
 			return false;
@@ -241,14 +255,23 @@ Fits an ellipse to a pupil area in an image
 				thresh3 = Mat::zeros(frameHeight, frameWidth, CV_8U);
 				RotatedRect ellipseRaw = fitEllipse(allPts);
 				ellipse(thresh3, ellipseRaw, 255, 1, 8);
-				allPts = refinePoints(ellipseContour.at(0), thresh3, 10, 2);
+				allPts = refinePoints(ellipseContour.at(0), thresh3, 6, 2, 
+					gray(cv::Rect(darkestPixelConfirm.x, darkestPixelConfirm.y, size2, size2)), true);
 			}
+
+			//temp = gray.clone();
+			//////add contours that also exist in canny, and if candidatesOn == true, mark checked on image
+			//for (int i = 0; i < allPts.size(); i++) {
+			//	temp.at<uchar>(Point2f(darkestPixelConfirm.x+allPts[i].x, darkestPixelConfirm.y+allPts[i].y)) = 0;
+			//}
+			//imshow("gray", temp);
+
 			/* //found that this additional refinement doesn't really help
 			if (ellipseContour.size() > 0 && ellipseContour.at(0).size() > 5) {
 				thresh3 = Mat::zeros(frameHeight, frameWidth, CV_8U);
 				RotatedRect ellipseRaw = fitEllipse(allPts);
 				ellipse(thresh3, ellipseRaw, 255, 1, 8);
-				allPts = refinePoints(ellipseContour.at(0), thresh3, 8, 1);
+				allPts = refinePoints(ellipseContour.at(0), thresh3, 8, 1, gray(cv::Rect(darkestPixelConfirm.x, darkestPixelConfirm.y, size2, size2)));
 			}
 			*/
 		}
@@ -275,8 +298,7 @@ Fits an ellipse to a pupil area in an image
 
 		///waitKey(1);
 		for (int i = 0; i < allPts.size(); i++) {
-			allPts[i].x += darkestPixelConfirm.x;
-			allPts[i].y += darkestPixelConfirm.y;
+			allPtsReturn.push_back(Point2f(darkestPixelConfirm.x, darkestPixelConfirm.y));
 		}
 		rr = ellipseCorrect;
 		return true;
@@ -327,6 +349,7 @@ bool threshDebug = false;
 
 //rect for comparing previous frame, used in bad ellipse filtering process
 RotatedRect previousRect = RotatedRect(Point2f(0, 0), Size2f(0, 0), 0);
+vector<Point> allPts;
 
 /**
 Finds the approximate darkets pixel, used on ROI images generated by getDarkestPixel area
@@ -511,6 +534,63 @@ Point getDarkestPixelArea(Mat& I, Mat& I2)
 	}
 
 	return ROI;
+}
+
+/**
+Finds the approximate darkest pixels (an average of many), used on ROI images generated by getDarkestPixel area
+@param I input image (converted to grayscale during search process)
+@return a grayscale value
+*/
+int getDarkestPixelBetter(Mat& I)
+{
+	// accept only char type matrices
+	CV_Assert(I.depth() == CV_8U);
+	CV_Assert(I.size().width > 50);
+	CV_Assert(I.size().height > 50);
+
+	int channels = I.channels();
+
+	int min = 255;
+	float minDenominator = 0;
+	float minNumerator = 0;
+
+	//holds array of 50 min values
+	vector<float> minVector;
+
+	int nRows = I.rows;
+	int nCols = I.cols * channels;
+
+	int nRowsT = I.rows;
+	int nColsT = I.cols * channels;
+
+	if (I.isContinuous())
+	{
+		nCols *= nRows;
+		nRows = 1;
+	}
+
+	int i, j;
+	uchar* p;
+	for (i = 2; i < nRows - 2; i = i + 5)
+	{
+		p = I.ptr<uchar>(i);
+		for (j = 2; j < nCols - 2; j = j + 5)
+		{
+			minVector.push_back(p[j]);
+			if ((p[j] + p[j - 2] + p[j + 2]) / 3 < min) {
+				min = p[j];
+			}
+		}
+	}
+
+
+	//average last 50 values in minVector and set that to min (HxW of orig image must be > 50)
+	//min = (int)(minDenominator / minNumerator);
+	sort(minVector.begin(), minVector.end());
+	min = minVector.at(minVector.size() / 100);
+
+
+	return min;
 }
 
 /**
@@ -728,9 +808,9 @@ vector<int> getBiggest(std::vector<std::vector<cv::Point>> contours){
 /**
 * Gets candidate points from a list of contours and canny image
 */
-vector<Point2f> getCandidates(std::vector<std::vector<cv::Point>>contours, int biggest, Mat& thresh, bool draw){
+vector<Point> getCandidates(std::vector<std::vector<cv::Point>>contours, int biggest, Mat& thresh, bool draw){
 
-	vector<Point2f> allPts;
+	vector<Point> allPts;
 
 	//debug
 	bool candidatesOn = draw;
@@ -766,59 +846,59 @@ vector<Point2f> getCandidates(std::vector<std::vector<cv::Point>>contours, int b
 
 				//add contours that also exist in canny, and if debug = true, mark checked on image
 				if (candidatesOn){
-					frame2.at<Vec3b>(Point2f(x, y))[0] = 15;
-					frame2.at<Vec3b>(Point2f(x, y))[1] = 0;
-					frame2.at<Vec3b>(Point2f(x, y))[2] = 255;
+					frame2.at<Vec3b>(Point(x, y))[0] = 15;
+					frame2.at<Vec3b>(Point(x, y))[1] = 0;
+					frame2.at<Vec3b>(Point(x, y))[2] = 255;
 				}
 
-				if ((int)thresh.at<uchar>(Point2f(x, y)) > 0){
+				if ((int)thresh.at<uchar>(Point(x, y)) > 0){
 
-					allPts.push_back(Point2f(x, y));
-					thresh.at<uchar>(Point2f(x, y)) = 0;
+					allPts.push_back(Point(x, y));
+					thresh.at<uchar>(Point(x, y)) = 0;
 
 				}
 				else if (candidatesOn){
-					frame2.at<Vec3b>(Point2f(x, y))[0] = 15;
-					frame2.at<Vec3b>(Point2f(x, y))[1] = 255;
-					frame2.at<Vec3b>(Point2f(x, y))[2] = 0;
+					frame2.at<Vec3b>(Point(x, y))[0] = 15;
+					frame2.at<Vec3b>(Point(x, y))[1] = 255;
+					frame2.at<Vec3b>(Point(x, y))[2] = 0;
 				}
 
 				for (int z = 1; z <= mult * thickness; z = z + mult){
-					if (((int)thresh.at<uchar>(Point2f(x, y + z))) > 0){
-						allPts.push_back(Point2f(x, y + z));
-						thresh.at<uchar>(Point2f(x, y + z)) = 0;
+					if (((int)thresh.at<uchar>(Point(x, y + z))) > 0){
+						allPts.push_back(Point(x, y + z));
+						thresh.at<uchar>(Point(x, y + z)) = 0;
 					}
 					else if (candidatesOn){
-						frame2.at<Vec3b>(Point2f(x, y + z))[0] = 15;
-						frame2.at<Vec3b>(Point2f(x, y + z))[1] = 255;
-						frame2.at<Vec3b>(Point2f(x, y + z))[2] = 0;
+						frame2.at<Vec3b>(Point(x, y + z))[0] = 15;
+						frame2.at<Vec3b>(Point(x, y + z))[1] = 255;
+						frame2.at<Vec3b>(Point(x, y + z))[2] = 0;
 					}
-					if (((int)thresh.at<uchar>(Point2f(x, y - z))) > 0){
-						allPts.push_back(Point2f(x, y - z));
-						thresh.at<uchar>(Point2f(x, y - z)) = 0;
-					}
-					else if (candidatesOn){
-						frame2.at<Vec3b>(Point2f(x, y - z))[0] = 15;
-						frame2.at<Vec3b>(Point2f(x, y - z))[1] = 255;
-						frame2.at<Vec3b>(Point2f(x, y - z))[2] = 0;
-					}
-					if (((int)thresh.at<uchar>(Point2f(x + z, y))) > 0){
-						allPts.push_back(Point2f(x + z, y));
-						thresh.at<uchar>(Point2f(x + z, y)) = 0;
+					if (((int)thresh.at<uchar>(Point(x, y - z))) > 0){
+						allPts.push_back(Point(x, y - z));
+						thresh.at<uchar>(Point(x, y - z)) = 0;
 					}
 					else if (candidatesOn){
-						frame2.at<Vec3b>(Point2f(x + z, y))[0] = 15;
-						frame2.at<Vec3b>(Point2f(x + z, y))[1] = 255;
-						frame2.at<Vec3b>(Point2f(x + z, y))[2] = 0;
+						frame2.at<Vec3b>(Point(x, y - z))[0] = 15;
+						frame2.at<Vec3b>(Point(x, y - z))[1] = 255;
+						frame2.at<Vec3b>(Point(x, y - z))[2] = 0;
 					}
-					if (((int)thresh.at<uchar>(Point2f(x - z, y))) > 0){
-						allPts.push_back(Point2f(x - z, y));
-						thresh.at<uchar>(Point2f(x - z, y)) = 0;
+					if (((int)thresh.at<uchar>(Point(x + z, y))) > 0){
+						allPts.push_back(Point(x + z, y));
+						thresh.at<uchar>(Point(x + z, y)) = 0;
 					}
 					else if (candidatesOn){
-						frame2.at<Vec3b>(Point2f(x - z, y))[0] = 15;
-						frame2.at<Vec3b>(Point2f(x - z, y))[1] = 255;
-						frame2.at<Vec3b>(Point2f(x - z, y))[2] = 0;
+						frame2.at<Vec3b>(Point(x + z, y))[0] = 15;
+						frame2.at<Vec3b>(Point(x + z, y))[1] = 255;
+						frame2.at<Vec3b>(Point(x + z, y))[2] = 0;
+					}
+					if (((int)thresh.at<uchar>(Point(x - z, y))) > 0){
+						allPts.push_back(Point(x - z, y));
+						thresh.at<uchar>(Point(x - z, y)) = 0;
+					}
+					else if (candidatesOn){
+						frame2.at<Vec3b>(Point(x - z, y))[0] = 15;
+						frame2.at<Vec3b>(Point(x - z, y))[1] = 255;
+						frame2.at<Vec3b>(Point(x - z, y))[2] = 0;
 					}
 
 				}
@@ -833,135 +913,24 @@ vector<Point2f> getCandidates(std::vector<std::vector<cv::Point>>contours, int b
 	return allPts;
 }
 
-/**
-* Overloaded function - accepts Point2f vectors in addition to Point vectors
-*/
-vector<Point2f> getCandidates(std::vector<std::vector<cv::Point2f>>contours, int biggest, Mat& thresh, bool draw){
-
-	vector<Point2f> allPts;
-
-	//debug
-	bool candidatesOn = draw;
-	bool cannyOn = draw;
-
-	//draw canny (red) on frame 2 for test
-	if (cannyOn){
-		for (int j = 0; j < thresh.size().height; j++){
-			for (int i = 0; i < thresh.size().width; i++){
-				if ((int)thresh.at<uchar>(i, j) > 0){
-
-					frame2.at<Vec3b>(i, j)[0] = 15;
-					frame2.at<Vec3b>(i, j)[1] = 0;
-					frame2.at<Vec3b>(i, j)[2] = 255;
-
-				}
-			}
-		}
-	}
-
-	//for (int j = 0; j < contours.size(); j++){
-	if (contours[biggest].size() > 40){
-		for (int i = 0; i < contours[biggest].size(); i++){
-			const float x = (float)contours[biggest][i].x;
-			const float y = (float)contours[biggest][i].y;
-
-			//border check
-			if (x - thickness > 0 &&
-				x + thickness < thresh.size().width &&
-				y - thickness > 0 &&
-				y + thickness < thresh.size().height){
-
-				//add contours that also exist in canny, and if debug = true, mark checked on image
-				if (candidatesOn){
-					frame2.at<Vec3b>(Point2f(x, y))[0] = 15;
-					frame2.at<Vec3b>(Point2f(x, y))[1] = 0;
-					frame2.at<Vec3b>(Point2f(x, y))[2] = 255;
-				}
-
-				if ((int)thresh.at<uchar>(Point2f(x, y)) > 0){
-
-					allPts.push_back(Point2f(x, y));
-					//set to zero to prevent duplicates
-					thresh.at<uchar>(Point2f(x, y)) = 0;
-
-				}
-				else if (candidatesOn){
-					frame2.at<Vec3b>(Point2f(x, y))[0] = 15;
-					frame2.at<Vec3b>(Point2f(x, y))[1] = 255;
-					frame2.at<Vec3b>(Point2f(x, y))[2] = 0;
-				}
-
-				for (int z = 1; z <= thickness; z++){
-					if (((int)thresh.at<uchar>(Point2f(x, y + z))) > 0){
-						allPts.push_back(Point2f(x, y + z));
-						thresh.at<uchar>(Point2f(x, y + z)) = 0;
-					}
-					else if (candidatesOn){
-						frame2.at<Vec3b>(Point2f(x, y + z))[0] = 15;
-						frame2.at<Vec3b>(Point2f(x, y + z))[1] = 255;
-						frame2.at<Vec3b>(Point2f(x, y + z))[2] = 0;
-					}
-					if (((int)thresh.at<uchar>(Point2f(x, y - z))) > 0){
-						allPts.push_back(Point2f(x, y - z));
-						thresh.at<uchar>(Point2f(x, y - z)) = 0;
-					}
-					else if (candidatesOn){
-						frame2.at<Vec3b>(Point2f(x, y - z))[0] = 15;
-						frame2.at<Vec3b>(Point2f(x, y - z))[1] = 255;
-						frame2.at<Vec3b>(Point2f(x, y - z))[2] = 0;
-					}
-					if (((int)thresh.at<uchar>(Point2f(x + z, y))) > 0){
-						allPts.push_back(Point2f(x + z, y));
-						thresh.at<uchar>(Point2f(x + z, y)) = 0;
-					}
-					else if (candidatesOn){
-						frame2.at<Vec3b>(Point2f(x + z, y))[0] = 15;
-						frame2.at<Vec3b>(Point2f(x + z, y))[1] = 255;
-						frame2.at<Vec3b>(Point2f(x + z, y))[2] = 0;
-					}
-					if (((int)thresh.at<uchar>(Point2f(x - z, y))) > 0){
-						allPts.push_back(Point2f(x - z, y));
-						thresh.at<uchar>(Point2f(x - z, y)) = 0;
-					}
-					else if (candidatesOn){
-						frame2.at<Vec3b>(Point2f(x - z, y))[0] = 15;
-						frame2.at<Vec3b>(Point2f(x - z, y))[1] = 255;
-						frame2.at<Vec3b>(Point2f(x - z, y))[2] = 0;
-					}
-
-				}
-			}
-
-		}
-	}
-	else{
-		cout << "contours.size was < 40. size = " << contours.size() << endl;
-	}
-
-	return allPts;
-}
-
 //Point refinement code
 //Better fits a set of candidate points to a pupil ellipse
-vector<Point2f> refinePoints(vector<Point2f> allPts, Mat gray, int checkThickness, int checkSpacing){
+vector<Point> refinePoints(vector<Point> allPts, Mat gray, int checkThickness, int checkSpacing, Mat grayOriginal, bool rmOutliers = false){
 
 	//vector holding returned points with sub-pixel accuracy
-	vector<Point2f> refinedPoints;
+	vector<Point> refinedPoints;
+
 
 	//loop through all points
 	for (int i = 0; i < allPts.size(); i++){
+
+		bool isGlint = false;
 
 		float finalX = allPts[i].x;
 		float finalY = allPts[i].y;
 
 		//cout << "old point: " << finalX << ", " << finalY;
-
-		//calculate differences
-		//int checkThickness = 8; // number of pixels to check in all 4 directions
-		//int checkSpacing = 2; // spacing between each pixel to check
-
-		//TODO only correct x on left/right side of ellipse and y on top/bottom of ellipse
-
+		
 		//loops checking pixels to reset best point for each candidate point
 		//check x edge cases
 		if (allPts[i].x - checkThickness*checkSpacing - 1 >= 0 &&
@@ -969,17 +938,21 @@ vector<Point2f> refinePoints(vector<Point2f> allPts, Mat gray, int checkThicknes
 
 			float xNumerator = 0;
 			float xDenominator = 0;
-
-			int largestDiffX = 0;
-//			int bestX = finalX;
-			bool found = false;
-
+			
 			//x loop
 			for (int j = -checkThickness*checkSpacing; j < checkThickness*checkSpacing; j = j + checkSpacing){
 
+				int centerValue = gray.at<uchar>(Point((int)allPts[i].x + j, (int)allPts[i].y));
+
+				//int centerValueOriginal = grayOriginal.at<uchar>(Point((int)allPts[i].x, (int)allPts[i].y));
+				//if (centerValueOriginal > 200 && rmOutliers) {
+				//	isGlint = true;
+				//	//cout << "color val" << centerValueOriginal << endl;
+				//}
+
 				//calculate and find diffs
-				int leftDiff = abs(gray.at<uchar>(Point((int)allPts[i].x + j, (int)allPts[i].y)) - gray.at<uchar>(Point((int)allPts[i].x + j - 1, (int)allPts[i].y)));
-				int rightDiff = abs(gray.at<uchar>(Point((int)allPts[i].x + j, (int)allPts[i].y)) - gray.at<uchar>(Point((int)allPts[i].x + j + 1, (int)allPts[i].y)));
+				int leftDiff = abs(centerValue - gray.at<uchar>(Point((int)allPts[i].x + j - 1, (int)allPts[i].y)));
+				int rightDiff = abs(centerValue - gray.at<uchar>(Point((int)allPts[i].x + j + 1, (int)allPts[i].y)));
 
 				//add with weight 
 				xNumerator += (allPts[i].x + j) * (leftDiff + rightDiff);
@@ -998,17 +971,15 @@ vector<Point2f> refinePoints(vector<Point2f> allPts, Mat gray, int checkThicknes
 
 			float yNumerator = 0;
 			float yDenominator = 0;
-
-			int largestDiffY = 0;
-//			int bestY = finalY;
-			bool found = false;
-
+			
 			//y loop
 			for (int j = -checkThickness*checkSpacing; j < checkThickness*checkSpacing; j = j + checkSpacing){
 
+				int centerValue2 = gray.at<uchar>(Point((int)allPts[i].x, (int)allPts[i].y + j));
+
 				//calculate and find diffs
-				int topDiff = abs(gray.at<uchar>(Point((int)allPts[i].x, (int)allPts[i].y + j)) - gray.at<uchar>(Point((int)allPts[i].x, (int)allPts[i].y + j - 1)));
-				int botDiff = abs(gray.at<uchar>(Point((int)allPts[i].x, (int)allPts[i].y + j)) - gray.at<uchar>(Point((int)allPts[i].x, (int)allPts[i].y + j + 1)));
+				int topDiff = abs(centerValue2 - gray.at<uchar>(Point((int)allPts[i].x, (int)allPts[i].y + j - 1)));
+				int botDiff = abs(centerValue2 - gray.at<uchar>(Point((int)allPts[i].x, (int)allPts[i].y + j + 1)));
 
 				//add with weight
 				yNumerator += (allPts[i].y + j) * (topDiff + botDiff);
@@ -1020,96 +991,16 @@ vector<Point2f> refinePoints(vector<Point2f> allPts, Mat gray, int checkThicknes
 			}
 		}
 
-		refinedPoints.push_back(Point2f(finalX, finalY));
+		if(isGlint){ //point was or near a glint, do not refine (border obscured)
+			refinedPoints.push_back(Point(allPts[i].x, allPts[i].y));
+			
+		}
+		else{ //point was not on glint, refine as usual (border visible)
+			refinedPoints.push_back(Point(finalX, finalY));
+		}
 
 	}//end for loop (for refining all candidates)
 
-	return refinedPoints;
-
-}//end point refinement
-
-//Point refinement code
-//Better fits a set of candidate points to a pupil ellipse
-vector<Point2f> refinePoints(vector<Point> allPts, Mat gray, int checkThickness, int checkSpacing){
-
-	//vector holding returned points with sub-pixel accuracy
-	vector<Point2f> refinedPoints;
-
-	//loop through all points
-	for (int i = 0; i < allPts.size(); i++){
-
-		float finalX = (float)allPts[i].x;
-		float finalY = (float)allPts[i].y;
-
-		//cout << "old point: " << finalX << ", " << finalY;
-
-		//calculate differences
-		//int checkThickness = 14; // number of pixels to check in all 4 directions
-		//int checkSpacing = 1; // spacing between each pixel to check
-
-		//TODO only correct x on left/right side of ellipse and y on top/bottom of ellipse
-
-		//loops checking pixels to reset best point for each candidate point
-		//check x edge cases
-		if (allPts[i].x - checkThickness*checkSpacing - 1 >= 0 &&
-			allPts[i].x + checkThickness*checkSpacing + 1 < gray.size().width){
-
-			float xNumerator = 0;
-			float xDenominator = 0;
-
-			int largestDiffX = 0;
-//			int bestX = finalX;
-			bool found = false;
-
-			//x loop
-			for (int j = -checkThickness*checkSpacing; j < checkThickness*checkSpacing; j = j + checkSpacing){
-
-				//calculate and find diffs
-				int leftDiff = abs(gray.at<uchar>(Point(allPts[i].x + j, allPts[i].y)) - gray.at<uchar>(Point(allPts[i].x + j - 1, allPts[i].y)));
-				int rightDiff = abs(gray.at<uchar>(Point(allPts[i].x + j, allPts[i].y)) - gray.at<uchar>(Point(allPts[i].x + j + 1, allPts[i].y)));
-
-				//add with weight 
-				xNumerator += (allPts[i].x + j) * (leftDiff + rightDiff);
-				xDenominator += (leftDiff + rightDiff);
-			}
-
-			//calculate final weighted point (ignored if bound condidions not met)
-			if (xDenominator != 0){
-				finalX = xNumerator / xDenominator;
-			}
-		}
-
-		//check y edge cases
-		if (allPts[i].y - checkThickness*checkSpacing - 1 >= 0 &&
-			allPts[i].y + checkThickness*checkSpacing + 1 < gray.size().height){
-
-			float yNumerator = 0;
-			float yDenominator = 0;
-
-			int largestDiffY = 0;
-//			int bestY = finalY;
-			bool found = false;
-
-			//y loop
-			for (int j = -checkThickness*checkSpacing; j < checkThickness*checkSpacing; j = j + checkSpacing){
-
-				//calculate and find diffs
-				int topDiff = abs(gray.at<uchar>(Point(allPts[i].x, allPts[i].y + j)) - gray.at<uchar>(Point(allPts[i].x, allPts[i].y + j - 1)));
-				int botDiff = abs(gray.at<uchar>(Point(allPts[i].x, allPts[i].y + j)) - gray.at<uchar>(Point(allPts[i].x, allPts[i].y + j + 1)));
-
-				//add with weight
-				yNumerator += (allPts[i].y + j) * (topDiff + botDiff);
-				yDenominator += (topDiff + botDiff);
-			}
-
-			if (yDenominator != 0){
-				finalY = yNumerator / yDenominator;
-			}
-		}
-
-		refinedPoints.push_back(Point2f(finalX, finalY));
-
-	}//end for loop (for refining all candidates)
 
 	return refinedPoints;
 
