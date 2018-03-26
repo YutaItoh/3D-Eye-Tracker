@@ -1,6 +1,6 @@
-# 3D Eye Tracker
+# 3D Eye Tracker (Drift Correction Branch - TESTING)
 
-This software aims to provide an easy-to-compile C++ implementation of a 3D eye-tracking method.
+This software aims to provide an easy-to-compile C++ implementation of a 3D eye-tracking method. This branch includes code to correct for shifts or drifting of the eye tracker on the user's head over time by updating the model and is currently in a TEST PHASE. Beta and release versions to follow. 
 
 Our software is designed for a wearable eye-tracking scnenario where a user wears a headset with an eye camera(s) that is equipped with infrared (IR) illuminations. The camera can capture close-up shots of the user's eyes.
 
