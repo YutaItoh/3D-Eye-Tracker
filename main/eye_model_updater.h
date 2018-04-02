@@ -58,9 +58,13 @@ public:
 
 	void render(cv::Mat &img);
 	void reset_indices();
+	void rm_oldest_index();
 
 	bool search(int x, int y, cv::Vec2i &pt, float &dist);
 	bool is_initialized(){ return is_initialized_; };
+	std::vector<bool> taken_flags_;
+	std::vector<int> flag_order_;//keeps order in which flags are set to true
+
 protected:
 	// Local variables initialized at the constructor
 	const int kSearchGridSize_;
@@ -72,8 +76,13 @@ protected:
 	bool is_initialized_ = false;
 	const int kN_ = 1;
 	int sample_num_;
-	std::vector<bool> taken_flags_;
+
 };
+
+class EyeMovementToolbox {
+
+};
+
 
 // 3D eye model fitting
 class EyeModelUpdater
@@ -83,12 +92,14 @@ public:
 	EyeModelUpdater(double focal_length, double region_band_width, double region_step_epsilon);
 
 	bool add_observation(cv::Mat &image, sef::Ellipse2D<double> &pupil, std::vector<cv::Point2f> &pupil_inliers, bool force=false);
-	
+	bool update_observation(cv::Mat &image, sef::Ellipse2D<double> &pupil, std::vector<cv::Point2f> &pupil_inliers, bool force = false);
+
 	singleeyefitter::EyeModelFitter::Circle unproject(cv::Mat &img, sef::Ellipse2D<double> &el, std::vector<cv::Point2f> &inlier_pts);
 	
 	double compute_reliability(cv::Mat &img, sef::Ellipse2D<double> &el, std::vector<cv::Point2f> &inlier_pts);
 
 	void render(cv::Mat &img, sef::Ellipse2D<double> &el, std::vector<cv::Point2f> &inlier_pts);
+	void EyeModelUpdater::getEyeVector(cv::Mat &img, sef::Ellipse2D<double> &el, std::vector<cv::Point2f> &inlier_pts, std::vector<double> &outPoints);
 
 	void reset();
 
@@ -100,6 +111,11 @@ public:
 	size_t fitter_count(){ return fitter_count_; }
 	size_t fitter_end_count(){ return fitter_max_count_; }
 	void add_fitter_max_count(int n);
+	void set_fitter_max_count(int n);
+	void rm_oldest_observation();
+	void force_rebuild_model();
+	int get_current_count();
+	int get_max_count();
 	const singleeyefitter::EyeModelFitter&fitter(){ return simple_fitter_; };
 protected:
 	// Local variables initialized at the constructor
