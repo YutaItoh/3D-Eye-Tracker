@@ -92,14 +92,12 @@ public:
 	EyeModelUpdater(double focal_length, double region_band_width, double region_step_epsilon);
 
 	bool add_observation(cv::Mat &image, sef::Ellipse2D<double> &pupil, std::vector<cv::Point2f> &pupil_inliers, bool force=false);
-	bool update_observation(cv::Mat &image, sef::Ellipse2D<double> &pupil, std::vector<cv::Point2f> &pupil_inliers, bool force = false);
 
 	singleeyefitter::EyeModelFitter::Circle unproject(cv::Mat &img, sef::Ellipse2D<double> &el, std::vector<cv::Point2f> &inlier_pts);
 	
 	double compute_reliability(cv::Mat &img, sef::Ellipse2D<double> &el, std::vector<cv::Point2f> &inlier_pts);
 
 	void render(cv::Mat &img, sef::Ellipse2D<double> &el, std::vector<cv::Point2f> &inlier_pts);
-	void EyeModelUpdater::getEyeVector(cv::Mat &img, sef::Ellipse2D<double> &el, std::vector<cv::Point2f> &inlier_pts, std::vector<double> &outPoints);
 
 	void reset();
 
