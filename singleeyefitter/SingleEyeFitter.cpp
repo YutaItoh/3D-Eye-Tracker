@@ -1,4 +1,4 @@
-﻿// SingleEyeFitter.cpp : Defines the entry point for the console application.
+// SingleEyeFitter.cpp : Defines the entry point for the console application.
 //
 
 #include <boost/math/special_functions/sign.hpp>
@@ -1122,6 +1122,15 @@ singleeyefitter::EyeModelFitter::Index singleeyefitter::EyeModelFitter::add_obse
     return pupils.size() - 1;
 }
 
+/*
+* Removes oldest observation from vector of pupil ellipses
+*/
+void singleeyefitter::EyeModelFitter::remove_observation()
+{
+	std::lock_guard<std::mutex> lock_model(model_mutex);
+	pupils.erase(pupils.begin());
+}
+
 void EyeModelFitter::reset()
 {
     std::lock_guard<std::mutex> lock_model(model_mutex);
@@ -1717,10 +1726,10 @@ void singleeyefitter::EyeModelFitter::unproject_observations(double pupil_radius
             }
         }
 
-        std::cout << "Inliers: " << best_inlier_indices.size()
-            << " (" << (100.0*best_inlier_indices.size() / pupil_gazelines_proj.size()) << "%)"
-            << " = " << best_line_distance_error
-            << std::endl;
+        //std::cout << "Inliers: " << best_inlier_indices.size()
+        //    << " (" << (100.0*best_inlier_indices.size() / pupil_gazelines_proj.size()) << "%)"
+        //    << " = " << best_line_distance_error
+        //    << std::endl;
 
         for (auto& pupil : pupils) {
             pupil.init_valid = false;
