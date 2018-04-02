@@ -3,7 +3,7 @@
 
 #include <mutex>
 #include <Eigen/Core>
-#include <opencv2/core/core.hpp>
+#include <opencv2/core.hpp>
 #include <singleeyefitter/cvx.h>
 #include <singleeyefitter/Circle.h>
 #include <singleeyefitter/Ellipse.h>
@@ -68,6 +68,7 @@ namespace singleeyefitter {
 
         Index add_observation(cv::Mat image, Ellipse pupil, int n_pseudo_inliers = 0);
         Index add_observation(cv::Mat image, Ellipse pupil, std::vector<cv::Point2f> pupil_inliers);
+		void remove_observation();
 
         void reset();
 
