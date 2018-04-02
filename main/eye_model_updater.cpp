@@ -1,4 +1,5 @@
 #include "eye_model_updater.h"
+#include <fstream>
 
 namespace eye_tracker{
 
@@ -63,8 +64,6 @@ void space_bin_searcher_test()
 		}
 
 		space_bin_searcher.render(img);
-		//		cv::imshow("img", img);
-		//	cv::waitKey(1);
 	}
 
 	return;
@@ -104,13 +103,13 @@ void SpaceBinSearcher::initialize(int w, int h){
 			ClusterCenters_.at<int>(idx, 0) = c;
 			ClusterCenters_.at<int>(idx, 1) = r;
 			idx++;
-
 		}
 	}
 
 	kdtrees = new cv::flann::GenericIndex< cvflann::L2<int> >(ClusterCenters_, cvflann::KDTreeIndexParams(4)); // a 4 k-d tree
 	is_initialized_ = true;
 }
+
 SpaceBinSearcher::~SpaceBinSearcher(){
 	if (is_initialized_){
 		delete kdtrees;
@@ -119,7 +118,7 @@ SpaceBinSearcher::~SpaceBinSearcher(){
 
 void SpaceBinSearcher::render(cv::Mat &img){
 	if (is_initialized_ == false){
-		std::cout << "SpaceBinSearcher::render: search tree is not initialized" << std::endl;
+		//std::cout << "SpaceBinSearcher::render: search tree is not initialized" << std::endl;
 		return;
 	}
 	if (img.empty()){
@@ -141,8 +140,17 @@ void SpaceBinSearcher::render(cv::Mat &img){
 		}
 	}
 }
+
 void SpaceBinSearcher::reset_indices(){
 	std::fill(taken_flags_.begin(), taken_flags_.end(), false);
+}
+
+/*
+* Resets the oldest element of taken_flags_ to allow the sample to be added again
+*/
+void SpaceBinSearcher::rm_oldest_index() {
+	taken_flags_[flag_order_.front()] = false; //set flag of oldest index to false
+	flag_order_.erase(flag_order_.begin()); //remove that index (next is now oldest)
 }
 
 bool SpaceBinSearcher::search(int x, int y, cv::Vec2i &pt, float &dist){
@@ -171,6 +179,7 @@ bool SpaceBinSearcher::search(int x, int y, cv::Vec2i &pt, float &dist){
 		}
 		else{
 			taken_flags_[NN_index] = true;
+			flag_order_.push_back(NN_index);
 			return true; // newly searched point
 		}
 	}
@@ -192,6 +201,43 @@ void EyeModelUpdater::add_fitter_max_count(int n){
 	if (is_model_built_){
 		is_model_built_ = false;
 	}
+}
+
+void EyeModelUpdater::set_fitter_max_count(int n) {
+	if (n <= 0 || n == fitter_max_count_) return;
+	fitter_max_count_ = n;
+	//if (is_model_built_) {
+	//	is_model_built_ = false;
+	//}
+	//reset();
+}
+
+int EyeModelUpdater::get_max_count() {
+	return fitter_max_count_;
+}
+
+int EyeModelUpdater::get_current_count() {
+	return fitter_count_;
+}
+
+/*
+* Removes the oldest ellipse from the set of observations and adds a new observation to replace it
+* This accounts for eye tracker drift over time. Run sparsely (Every 100 - 500 ms). 
+*/
+void EyeModelUpdater::rm_oldest_observation() {
+	//remove one observation (without going under 80% of max)
+	if (is_model_built_ && space_bin_searcher_.is_initialized() && fitter_count_ >= fitter_max_count_ * .8f) {
+		simple_fitter_.remove_observation();
+		space_bin_searcher_.rm_oldest_index();
+		fitter_count_--;
+	}
+	is_model_built_ = false;
+}
+
+void EyeModelUpdater::force_rebuild_model() {
+	simple_fitter_.unproject_observations();
+	simple_fitter_.initialise_model();
+	is_model_built_ = true;
 }
 
 bool EyeModelUpdater::add_observation(cv::Mat &image, sef::Ellipse2D<double> &pupil, std::vector<cv::Point2f> &pupil_inliers,bool force){
@@ -294,10 +340,29 @@ void EyeModelUpdater::render(cv::Mat &img, sef::Ellipse2D<double> &el, std::vect
 			// 3D gaze vector
 			singleeyefitter::EyeModelFitter::Circle c_end = curr_circle;
 			c_end.centre = curr_circle.centre + (10.0)*curr_circle.normal; // Unit: mm
+			//std::cout << "x: " << c_end.centre.x() << std::endl;
+			//std::cout << "y: " << c_end.centre.y() << std::endl;
+			//std::cout << "z: " << c_end.centre.z() << std::endl;
+
+
+			//std::cout << "eye center x: " << simple_fitter_.eye.centre[0] << std::endl;
+			//std::cout << "eye center y: " << simple_fitter_.eye.centre[1] << std::endl;
+			//std::cout << "eye center z: " << simple_fitter_.eye.centre[2] << std::endl;
+
+			//std::cout << "radius: " << c_end.radius << std::endl;
+
+
+			//write coordinates to file
+			//std::ofstream myfile("C:\\Users\\O\\Documents\\Visual Studio 2013\\Projects\\EyeTrackerRealTime\\coordinates.txt");
+			std::ofstream myfile;// ("C:\\Documents\\Osaka\\Research\\Presence 2017\\testcoordinates.txt");
+			myfile.open("C:\\Documents\\Osaka\\Research\\Presence 2017\\testcoordinates.txt", std::ios_base::app);
+			myfile << "" << c_end.centre.x() << "," << c_end.centre.y() << "," << c_end.centre.z() 
+			       << "," << simple_fitter_.eye.centre[0] << "," << simple_fitter_.eye.centre[1] << "," << simple_fitter_.eye.centre[2] <<
+				   std::endl;
+			myfile.close();
 			singleeyefitter::Ellipse2D<double> e_end(sef::project(c_end, focal_length_));
 			cv::RotatedRect rr_end = eye_tracker::toImgCoord(singleeyefitter::toRotatedRect(e_end), img, displayscale);
 			cv::line(img, cv::Point(rr_pupil.center), cv::Point(rr_end.center), cv::Vec3b(0, 255, 128), 2, CV_AA);
-
 		}
 	}
 }
