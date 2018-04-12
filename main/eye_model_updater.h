@@ -112,13 +112,18 @@ public:
 	void set_fitter_max_count(int n);
 	void rm_oldest_observation();
 	void force_rebuild_model();
+	singleeyefitter::EyeModelFitter::Sphere EyeModelUpdater::eyeModelFilter(
+		singleeyefitter::EyeModelFitter::Sphere eye, 
+		std::vector<singleeyefitter::EyeModelFitter::Sphere> &eyes,
+		int filterLength);
 	int get_current_count();
 	int get_max_count();
+	void EyeModelUpdater::setEye(singleeyefitter::EyeModelFitter::Sphere eye);
+	singleeyefitter::EyeModelFitter::Sphere EyeModelUpdater::getEye();
 	const singleeyefitter::EyeModelFitter&fitter(){ return simple_fitter_; };
 protected:
 	// Local variables initialized at the constructor
 	double focal_length_;
-	singleeyefitter::EyeModelFitter simple_fitter_;
 
 	// Local variables 
 	static const size_t kFitterMaxCountDefault_ = 30;// 100;
@@ -127,6 +132,7 @@ protected:
 	bool is_model_built_ = false;
 	bool is_status_initialized_ = false;
 	SpaceBinSearcher space_bin_searcher_;
+	singleeyefitter::EyeModelFitter simple_fitter_;
 
 private:
 	// Prevent copying
