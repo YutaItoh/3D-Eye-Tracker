@@ -1771,7 +1771,7 @@ void singleeyefitter::EyeModelFitter::unproject_observations(double pupil_radius
             const auto& c_proj = line.origin();
             const auto& v_proj = line.direction();
 
-            // Check if v_proj going away from est eye centre. If it is, then
+            // Check if v_proj going away from best eye centre. If it is, then
             // the first circle was correct. Otherwise, take the second one.
             // The two normals will point in opposite directions, so only need
             // to check one.
