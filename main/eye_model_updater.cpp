@@ -226,7 +226,7 @@ int EyeModelUpdater::get_current_count() {
 */
 void EyeModelUpdater::rm_oldest_observation() {
 	//remove one observation (without going under 80% of max)
-	if (is_model_built_ && space_bin_searcher_.is_initialized() && fitter_count_ >= fitter_max_count_ * .8f) {
+	if (is_model_built_ && space_bin_searcher_.is_initialized() && fitter_count_ >= fitter_max_count_ * .9f) {
 		simple_fitter_.remove_observation();
 		space_bin_searcher_.rm_oldest_index();
 		fitter_count_--;
@@ -265,6 +265,15 @@ bool EyeModelUpdater::add_observation(cv::Mat &image, sef::Ellipse2D<double> &pu
 	return is_added;
 }
 
+void EyeModelUpdater::setEye(singleeyefitter::EyeModelFitter::Sphere eye) {
+	simple_fitter_.eye = eye;
+}
+
+singleeyefitter::EyeModelFitter::Sphere EyeModelUpdater::getEye() {
+	return simple_fitter_.eye;
+}
+
+
 singleeyefitter::EyeModelFitter::Circle  EyeModelUpdater::unproject(cv::Mat &img, sef::Ellipse2D<double> &el, std::vector<cv::Point2f> &inlier_pts){
 	if (simple_fitter_.eye){
 		// Unproject the current 2D ellipse observations
@@ -285,7 +294,6 @@ singleeyefitter::EyeModelFitter::Circle  EyeModelUpdater::unproject(cv::Mat &img
 	}
 	return singleeyefitter::EyeModelFitter::Circle::Null;
 }
-
 
 double EyeModelUpdater::compute_reliability(cv::Mat &img, sef::Ellipse2D<double> &el, std::vector<cv::Point2f> &inlier_pts){
 	double realiabiliy = 0.0;
@@ -318,7 +326,7 @@ double EyeModelUpdater::compute_reliability(cv::Mat &img, sef::Ellipse2D<double>
 }
 
 void EyeModelUpdater::render(cv::Mat &img, sef::Ellipse2D<double> &el, std::vector<cv::Point2f> &inlier_pts){
-
+	
 	if (simple_fitter_.eye){
 		const float displayscale = 1.0f;
 
@@ -354,17 +362,65 @@ void EyeModelUpdater::render(cv::Mat &img, sef::Ellipse2D<double> &el, std::vect
 
 			//write coordinates to file
 			//std::ofstream myfile("C:\\Users\\O\\Documents\\Visual Studio 2013\\Projects\\EyeTrackerRealTime\\coordinates.txt");
-			std::ofstream myfile;// ("C:\\Documents\\Osaka\\Research\\Presence 2017\\testcoordinates.txt");
-			myfile.open("C:\\Documents\\Osaka\\Research\\Presence 2017\\testcoordinates.txt", std::ios_base::app);
-			myfile << "" << c_end.centre.x() << "," << c_end.centre.y() << "," << c_end.centre.z() 
-			       << "," << simple_fitter_.eye.centre[0] << "," << simple_fitter_.eye.centre[1] << "," << simple_fitter_.eye.centre[2] <<
-				   std::endl;
-			myfile.close();
+			////std::ofstream myfile;
+			////myfile.open("C:\\Documents\\Osaka\\Research\\Presence 2017\\testcoordinates.txt", std::ios_base::app);
+			//myfile << "" << c_end.centre.x() << "," << c_end.centre.y() << "," << c_end.centre.z() 
+			//       << "," << simple_fitter_.eye.centre[0] << "," << simple_fitter_.eye.centre[1] << "," << simple_fitter_.eye.centre[2] <<
+			//	   std::endl;
+			//myfile.close();
 			singleeyefitter::Ellipse2D<double> e_end(sef::project(c_end, focal_length_));
 			cv::RotatedRect rr_end = eye_tracker::toImgCoord(singleeyefitter::toRotatedRect(e_end), img, displayscale);
 			cv::line(img, cv::Point(rr_pupil.center), cv::Point(rr_end.center), cv::Vec3b(0, 255, 128), 2, CV_AA);
 		}
 	}
+}
+
+singleeyefitter::EyeModelFitter::Sphere EyeModelUpdater::eyeModelFilter(
+	singleeyefitter::EyeModelFitter::Sphere eye, 
+	std::vector<singleeyefitter::EyeModelFitter::Sphere> &eyes, int filterLength) {
+	int max = filterLength; //max number of elements to average
+	double radiiAverage = 0;
+	singleeyefitter::EyeModelFitter::Sphere filteredEyeModel;
+	singleeyefitter::EyeModelFitter::Sphere eyeTemp(eye);
+	eyes.push_back(eyeTemp);//add the newest eye model to the vector 
+	std::cout << "Adding x of : " + std::to_string(eyes[eyes.size()-1].centre(0)) << std::endl;
+	//std::cout << "raw radius: " << eyeTemp.radius << std::endl;
+	if (eyes.size() > max) {//remove oldest element if > max
+		eyes.erase(eyes.begin());
+	}
+	//temp arrays for sorting
+	std::vector<singleeyefitter::EyeModelFitter::Sphere> temp(eyes);
+	std::vector<double> xs; 
+	std::vector<double> ys;
+	std::vector<double> zs;
+	std::vector<double> radii;
+	//add data to all arrays from eye spheres
+	for (int i = 0; i < temp.size(); i++) {
+		xs.push_back(eyes[i].centre[0]);
+		ys.push_back(eyes[i].centre[1]);
+		zs.push_back(eyes[i].centre[2]);
+		radii.push_back(eyes[i].radius);
+		radiiAverage += eyes[i].radius / temp.size();
+	}
+
+
+	//sort each coordinate and radii
+	std::sort(xs.begin(), xs.begin() + xs.size());
+	std::sort(ys.begin(), ys.begin() + ys.size());
+	std::sort(zs.begin(), zs.begin() + zs.size());
+	std::sort(radii.begin(), radii.begin() + radii.size());
+	//for (int i = 0; i < radii.size(); i++) {
+	//	std::cout << "radius " << i << ": " << radii[i] << std::endl;
+	//}
+	//set return sphere to median values
+	filteredEyeModel.centre[0] = xs[(int)xs.size() / 2];
+	filteredEyeModel.centre[1] = ys[(int)ys.size() / 2];
+	filteredEyeModel.centre[2] = zs[(int)zs.size() / 2];
+	filteredEyeModel.radius = radiiAverage;// radii[(int)radii.size() / 2];
+	//return median Sphere
+	std::cout << "Returning x of : " + std::to_string(filteredEyeModel.centre(0)) << std::endl;
+
+	return filteredEyeModel;
 }
 
 void EyeModelUpdater::reset(){
