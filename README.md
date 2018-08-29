@@ -1,4 +1,4 @@
-# 3D Eye Tracker (Drift Correction Branch - TESTING)
+# 3D Eye Tracker (Drift Correction Branch - BETA as of August 29th, 2018)
 
 This software aims to provide an easy-to-compile C++ implementation of a 3D eye-tracking method. This branch includes code to correct for shifts or drifting of the eye tracker on the user's head over time by updating the model and is currently in a TEST PHASE. Beta and release versions to follow. 
 
@@ -10,7 +10,7 @@ With this software, you can obtain the following information:
 
 * 3D information:
   * Gaze (normal) vector
-  * Eyeball center w.r.t the camera
+  * Eyeball center w.r.t to the camera
   * Pupil diameter [m]
 * 2D information:
   * Pupil ellipse size [pixel] and angle [deg.]
@@ -20,14 +20,16 @@ With this software, you can obtain the following information:
 
 ## Prerequisite
 
-Currently, the software is compatible with Visual Studio 2015. The test was done on a 64bit Windows 10 machine only.
+This software has been tested with Visual Studio 2015 and 2017. These tests were performed on a 64bit Windows 10 machine only.
 
 Most of external libraries (for vc14, x64) are bundled in `./external`, yet you still need to 
 install the following two libraries:
 * [OpenCV 3.1](http://opencv.org/downloads.html) 
-  * We recommend to use [***a windows installer***](http://sourceforge.net/projects/opencvlibrary/files/opencv-win/3.1.0/opencv-3.1.0.exe/download) (vc14, x64)
+  * We recommend to use [***a windows installer***](http://sourceforge.net/projects/opencvlibrary/files/opencv-win/3.1.0/opencv-3.1.0.exe/download) (vc14, x64) Note: This code is now tested with OpenCV 3.2 and vc15, x64. 
 * [Boost C++ Libraries ver. >1.62](https://sourceforge.net/projects/boost/files/boost-binaries/1.62.0/)
   * We recommend to use [***a windows installer***](https://sourceforge.net/projects/boost/files/boost-binaries/1.62.0/boost_1_62_0-msvc-14.0-64.exe/download) (boost_1_62_0-msvc-14.0-64.exe)
+* [PupilCapture](https://github.com/themrx/PupilCapture)
+  * For the Pupil Labs stereo cameras over a single USB cable, you will need to set up and install the PupilCam library and its dependencies, all found at the above link. 
 
 To setup your own Visual Studio project, you need to use [CMake](https://cmake.org/). You can find a windows installer [here](https://cmake.org/download/).
  
@@ -76,3 +78,4 @@ Some debug keys are pre-assigned for a better control of the software:
 This program integrated/modified several existing codes. Especially, 
 * [2D pupil detection code](https://github.com/YutaItoh/3D-Eye-Tracker/blob/master/main/pupilFitter.h) by [Jason Orlosky](http://www.jeoresearch.com/research)
 * [3D eye model optimization code](https://github.com/LeszekSwirski/singleeyefitter) (./singleeyefitter) by Leszek Swirski 
+* [Access to stereo Pupil Labs cameras](https://github.com/themrx/PupilCapture) by [Alexander Plopski](http://imd.naist.jp/people/alexanderplopski/)
