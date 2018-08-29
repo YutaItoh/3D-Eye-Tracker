@@ -115,7 +115,9 @@ public:
 	singleeyefitter::EyeModelFitter::Sphere EyeModelUpdater::eyeModelFilter(
 		singleeyefitter::EyeModelFitter::Sphere eye, 
 		std::vector<singleeyefitter::EyeModelFitter::Sphere> &eyes,
-		int filterLength);
+		int filterLength,
+		bool ignoreNewEye,
+		singleeyefitter::EyeModelFitter::Sphere originalCalibratedEye);
 	int get_current_count();
 	int get_max_count();
 	void EyeModelUpdater::setEye(singleeyefitter::EyeModelFitter::Sphere eye);
@@ -126,7 +128,7 @@ protected:
 	double focal_length_;
 
 	// Local variables 
-	static const size_t kFitterMaxCountDefault_ = 30;// 100;
+	static const size_t kFitterMaxCountDefault_ = 50;// 100;
 	size_t fitter_count_ = 0;
 	size_t fitter_max_count_ = kFitterMaxCountDefault_;// 100;
 	bool is_model_built_ = false;
