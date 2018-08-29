@@ -34,6 +34,11 @@ public:
 		threshDebug = threshDebug0;
 	};
 
+	double getInterpupillaryDifference(double left[], double right[]) {
+		return sqrt(pow(left[0] - right[0], 2) + pow(left[1] - right[1], 2) + pow(left[2] - right[2], 2));
+	}
+
+
 /**
 Fits an ellipse to a pupil area in an image
 @param gray BGR input image (converted to grayscale during search process)
@@ -304,6 +309,28 @@ bool pupilAreaFitRR(Mat &gray, RotatedRect &rr, vector<Point2f> &allPtsReturn,
 		return true;
 	}
 
+	bool badEllipseFilter(RotatedRect current, int maxSize) {
+
+		bool isGood = true;
+
+		//test against last ttwo ellipse sizes and rotations, 
+		//if difference is over a certain size and angle threshold, set isGood to false 
+		if (current.size.width / current.size.height > 4 ||
+			current.size.height / current.size.width > 4 ||
+			current.size.height > maxSize ||
+			current.size.width > maxSize ||
+			current.size.height < 25 ||
+			current.size.width < 25 ||
+			current.size.width > maxSize ||
+			current.size.height > maxSize ||
+			current.size.height + current.size.width > 400) { 
+			isGood = false;
+		}
+
+		previousRect = current;
+		return isGood;
+	}
+
 private:
 //global variables  
 
@@ -393,148 +420,148 @@ int getDarkestPixel(Mat& I)
 	return min;
 }
 
-/**
-Finds a square area of dark pixels in the image
-@param I input image (converted to grayscale during search process)
-@param I2 copy of input image onto which green block of pixels is drawn (BGR), null ok
-@return a point within the pupil region
-*/
-Point getDarkestPixelArea(Mat& I, Mat& I2)
-{
-	cv::cvtColor(I, I, CV_BGR2GRAY);
-
-	// accept only char type matrices
-	CV_Assert(I.depth() == CV_8U);
-
-	Point ROI;
-
-	int channels = I.channels();
-
-	//for searching image
-	int sArea = 20; //bound of outer search in any direction
-	int outerSearchDivisor = 4; //sets spacing of outer search, equal to sArea*2/outerSearchDivisor
-
-	//darkness calculation
-	int width = 10; //width of darkness search area
-	int searchDivisor = 2;
-
-	//stdev calculation
-	int widthSmall = width;
-	int searchDivisorDev = widthSmall / 5;
-
-	int min = 255;
-	int areaMin = 255 * (9 * searchDivisor*searchDivisor);
-	float stDevMin = 1000;
-
-	int count = 0;
-
-	bool draw = true;
-	int finalColorCount = 0;
-
-	for (int i = sArea * width / sArea + pupilSearchYMin; i < I.rows - sArea* width / sArea; i = i + sArea / outerSearchDivisor){
-		for (int j = sArea* width / sArea + pupilSearchXMin; j < I.cols - sArea* width / sArea; j = j + sArea / outerSearchDivisor){
-
-			int tempSum = 0; //holds current sum of pixel intensities
-			float tempStDev = 1000;
-
-			int colorCount = 0; //counts the number of pixels summed
-
-			//darkness testing for single square
-			for (int d = -width; d < width + 1; d = d + width / searchDivisor){
-				for (int c = -width; c < width + 1; c = c + width / searchDivisor){
-
-					if (d == -width&&c == -width || d == width&&c == -width || d == -width&&c == width || d == width&&c == width){
-						//no comparison at corners
-					}
-					else{
-						tempSum += I.at<uchar>(i + d, j + c);
-					}
-
-					//for efficiency, exit if darkness > current 
-					if (tempSum > areaMin){
-						c = 10000;
-						d = 10000;
-					}
-
-					colorCount++;
-				}
-			}//end darkness calculation
-
-			//color with darkness level (heatmap)
-			//if ((255 * colorCount - tempSum) / colorCount > 220){
-			//	I2.at<Vec3b>(i, j)[0] = 0;
-			//	I2.at<Vec3b>(i, j)[1] = 0;
-			//	I2.at<Vec3b>(i, j)[2] = (255 * colorCount - tempSum) / colorCount;
-			//}
-
-			//is darker than last calculated area?
-			if (tempSum < areaMin){
-
-				//progress to stdev calculation if area was darker
-				//float stDev = 0;
-				//vector<float> data;
-
-				//for (int d2 = -widthSmall; d2 < widthSmall + 1; d2 = d2 + widthSmall / searchDivisorDev){
-				//	for (int c2 = -widthSmall; c2 < widthSmall + 1; c2 = c2 + widthSmall / searchDivisorDev){
-				//		data.push_back(I.at<uchar>(i + d2, j + c2));
-				//		//I2.at<Vec3b>(i, j)[0] = 0;
-				//		//I2.at<Vec3b>(i, j)[1] = 0;
-				//		//I2.at<Vec3b>(i, j)[2] = 255;
-				//	}
-				//}
-				//tempStDev = standard_deviation(&data[0], data.size());
-
-				//in our videos, pupils don't exceed y>160 or x>530, remove for videos where pupil could be anywhere on the screen 
-				if (i > 50 && j < 530){
-
-					ROI = Point(j, i);
-					//cout << "tempsum = " << tempSum << " @ " << j << ", " << i << endl;
-					areaMin = tempSum;
-					count++;
-
-					finalColorCount = colorCount;
-
-					//color points that are progressively darker
-					//I2.at<Vec3b>(ROI)[0] = 0;
-					//I2.at<Vec3b>(ROI)[1] = 0;
-					//I2.at<Vec3b>(ROI)[2] = 255;
-				}
-
-				stDevMin = tempStDev;
-			}
-
-		}//end outerX for
-	}//end outerY for
-
-	//std::cout << "min avg pixel value was " << areaMin / finalColorCount;
-
-	//float stDev = 0;
-	//vector<float> data;
-
-	//double test = stDevMin;
-	//cout.precision(5);
-	//cout << "stdev: " << fixed << test << "  darkness: " << areaMin << endl;
-
-	//only draw if image was passed to I2
-	if (&I2 != nullptr){
-		//draw pupil marker
-		for (int d2 = -widthSmall; d2 < widthSmall + 1; d2 = d2 + widthSmall / searchDivisorDev / 2){
-			for (int c2 = -widthSmall; c2 < widthSmall + 1; c2 = c2 + widthSmall / searchDivisorDev / 2){
-
-				if (d2 == -width&&c2 == -width || d2 == width&&c2 == -width || d2 == -width&&c2 == width || d2 == width&&c2 == width){
-					//do nothing
-				}
-				else if (areaMin / finalColorCount < 80 && areaMin / finalColorCount > 0){
-					I2.at<Vec3b>(ROI.y + c2, ROI.x + d2)[0] = 15;
-					I2.at<Vec3b>(ROI.y + c2, ROI.x + d2)[1] = 255;
-					I2.at<Vec3b>(ROI.y + c2, ROI.x + d2)[2] = 15;
-				}
-			}
-		}
-	}
-
-	return ROI;
-}
+///**
+//Finds a square area of dark pixels in the image
+//@param I input image (converted to grayscale during search process)
+//@param I2 copy of input image onto which green block of pixels is drawn (BGR), null ok
+//@return a point within the pupil region
+//*/
+//Point getDarkestPixelArea(Mat& I, Mat& I2)
+//{
+//	cv::cvtColor(I, I, CV_BGR2GRAY);
+//
+//	// accept only char type matrices
+//	CV_Assert(I.depth() == CV_8U);
+//
+//	Point ROI;
+//
+//	int channels = I.channels();
+//
+//	//for searching image
+//	int sArea = 20; //bound of outer search in any direction
+//	int outerSearchDivisor = 4; //sets spacing of outer search, equal to sArea*2/outerSearchDivisor
+//
+//	//darkness calculation
+//	int width = 10; //width of darkness search area
+//	int searchDivisor = 2;
+//
+//	//stdev calculation
+//	int widthSmall = width;
+//	int searchDivisorDev = widthSmall / 5;
+//
+//	int min = 255;
+//	int areaMin = 255 * (9 * searchDivisor*searchDivisor);
+//	float stDevMin = 1000;
+//
+//	int count = 0;
+//
+//	bool draw = true;
+//	int finalColorCount = 0;
+//
+//	for (int i = sArea * width / sArea + pupilSearchYMin; i < I.rows - sArea* width / sArea; i = i + sArea / outerSearchDivisor){
+//		for (int j = sArea* width / sArea + pupilSearchXMin; j < I.cols - sArea* width / sArea; j = j + sArea / outerSearchDivisor){
+//
+//			int tempSum = 0; //holds current sum of pixel intensities
+//			float tempStDev = 1000;
+//
+//			int colorCount = 0; //counts the number of pixels summed
+//
+//			//darkness testing for single square
+//			for (int d = -width; d < width + 1; d = d + width / searchDivisor){
+//				for (int c = -width; c < width + 1; c = c + width / searchDivisor){
+//
+//					if (d == -width&&c == -width || d == width&&c == -width || d == -width&&c == width || d == width&&c == width){
+//						//no comparison at corners
+//					}
+//					else{
+//						tempSum += I.at<uchar>(i + d, j + c);
+//					}
+//
+//					//for efficiency, exit if darkness > current 
+//					if (tempSum > areaMin){
+//						c = 10000;
+//						d = 10000;
+//					}
+//
+//					colorCount++;
+//				}
+//			}//end darkness calculation
+//
+//			//color with darkness level (heatmap)
+//			//if ((255 * colorCount - tempSum) / colorCount > 220){
+//			//	I2.at<Vec3b>(i, j)[0] = 0;
+//			//	I2.at<Vec3b>(i, j)[1] = 0;
+//			//	I2.at<Vec3b>(i, j)[2] = (255 * colorCount - tempSum) / colorCount;
+//			//}
+//
+//			//is darker than last calculated area?
+//			if (tempSum < areaMin){
+//
+//				//progress to stdev calculation if area was darker
+//				//float stDev = 0;
+//				//vector<float> data;
+//
+//				//for (int d2 = -widthSmall; d2 < widthSmall + 1; d2 = d2 + widthSmall / searchDivisorDev){
+//				//	for (int c2 = -widthSmall; c2 < widthSmall + 1; c2 = c2 + widthSmall / searchDivisorDev){
+//				//		data.push_back(I.at<uchar>(i + d2, j + c2));
+//				//		//I2.at<Vec3b>(i, j)[0] = 0;
+//				//		//I2.at<Vec3b>(i, j)[1] = 0;
+//				//		//I2.at<Vec3b>(i, j)[2] = 255;
+//				//	}
+//				//}
+//				//tempStDev = standard_deviation(&data[0], data.size());
+//
+//				//in our videos, pupils don't exceed y>160 or x>530, remove for videos where pupil could be anywhere on the screen 
+//				if (i > 50 && j < 530){
+//
+//					ROI = Point(j, i);
+//					//cout << "tempsum = " << tempSum << " @ " << j << ", " << i << endl;
+//					areaMin = tempSum;
+//					count++;
+//
+//					finalColorCount = colorCount;
+//
+//					//color points that are progressively darker
+//					//I2.at<Vec3b>(ROI)[0] = 0;
+//					//I2.at<Vec3b>(ROI)[1] = 0;
+//					//I2.at<Vec3b>(ROI)[2] = 255;
+//				}
+//
+//				stDevMin = tempStDev;
+//			}
+//
+//		}//end outerX for
+//	}//end outerY for
+//
+//	//std::cout << "min avg pixel value was " << areaMin / finalColorCount;
+//
+//	//float stDev = 0;
+//	//vector<float> data;
+//
+//	//double test = stDevMin;
+//	//cout.precision(5);
+//	//cout << "stdev: " << fixed << test << "  darkness: " << areaMin << endl;
+//
+//	//only draw if image was passed to I2
+//	if (&I2 != nullptr){
+//		//draw pupil marker
+//		for (int d2 = -widthSmall; d2 < widthSmall + 1; d2 = d2 + widthSmall / searchDivisorDev / 2){
+//			for (int c2 = -widthSmall; c2 < widthSmall + 1; c2 = c2 + widthSmall / searchDivisorDev / 2){
+//
+//				if (d2 == -width&&c2 == -width || d2 == width&&c2 == -width || d2 == -width&&c2 == width || d2 == width&&c2 == width){
+//					//do nothing
+//				}
+//				else if (areaMin / finalColorCount < 80 && areaMin / finalColorCount > 0){
+//					I2.at<Vec3b>(ROI.y + c2, ROI.x + d2)[0] = 15;
+//					I2.at<Vec3b>(ROI.y + c2, ROI.x + d2)[1] = 255;
+//					I2.at<Vec3b>(ROI.y + c2, ROI.x + d2)[2] = 15;
+//				}
+//			}
+//		}
+//	}
+//
+//	return ROI;
+//}
 
 /**
 Finds the approximate darkest pixels (an average of many), used on ROI images generated by getDarkestPixel area
@@ -596,7 +623,6 @@ int getDarkestPixelBetter(Mat& I)
 /**
 Finds a square area of dark pixels in the image
 @param I input image (converted to grayscale during search process)
-@param I2 copy of input image onto which green block of pixels is drawn (BGR), null ok
 @return a point within the pupil region
 */
 Point getDarkestPixelArea(Mat& I)
@@ -608,6 +634,8 @@ Point getDarkestPixelArea(Mat& I)
 
 	// accept only char type matrices
 	CV_Assert(I.depth() == CV_8U);
+
+	//Mat I2 = I.clone();
 
 	Point ROI;
 
@@ -630,96 +658,65 @@ Point getDarkestPixelArea(Mat& I)
 	float stDevMin = 1000;
 
 	int count = 0;
-
-	bool draw = true;
 	int finalColorCount = 0;
+	int ignoreCornerDepth = 150; //number of pixels to ignore away from corners
 
-	for (int i = sArea * width / sArea + pupilSearchYMin; i < I.rows - sArea* width / sArea; i = i + sArea / outerSearchDivisor){
-		for (int j = sArea* width / sArea + pupilSearchXMin; j < I.cols - sArea* width / sArea; j = j + sArea / outerSearchDivisor){
+	//for (int i = sArea * width / sArea ; i < I.rows - sArea * width / sArea; i = i + sArea / outerSearchDivisor) {
+	//	for (int j = sArea * width / sArea ; j < I.cols - sArea * width / sArea; j = j + sArea / outerSearchDivisor) {
+		for (int i = width; i < I.rows - width; i = i + sArea / outerSearchDivisor) {
+			for (int j = width; j < I.cols - width; j = j + sArea / outerSearchDivisor) {
+				if (i + j > ignoreCornerDepth && //top left corner
+					i + I.cols - j > ignoreCornerDepth && //bottom left corner
+					I.rows - i + j > ignoreCornerDepth && //top right corner
+					I.rows - i + I.cols - j > ignoreCornerDepth) 
+				{ //bottom right corner
 
-			int tempSum = 0; //holds current sum of pixel intensities
-			float tempStDev = 1000;
+					int tempSum = 0; //holds current sum of pixel intensities
+					float tempStDev = 1000;
 
-			int colorCount = 0; //counts the number of pixels summed
+					int colorCount = 0; //counts the number of pixels summed
 
-			//darkness testing for single square
-			for (int d = -width; d < width + 1; d = d + width / searchDivisor){
-				for (int c = -width; c < width + 1; c = c + width / searchDivisor){
+					//darkness testing for single square
+					for (int d = -width; d < width + 1; d = d + width / searchDivisor) {
+						for (int c = -width; c < width + 1; c = c + width / searchDivisor) {
 
-					if (d == -width&&c == -width || d == width&&c == -width || d == -width&&c == width || d == width&&c == width){
-						//no comparison at corners
+							if (d == -width && c == -width || d == width && c == -width || d == -width && c == width || d == width && c == width) {
+								//no comparison at corners
+							}
+							else {
+								tempSum += I.at<uchar>(i + d, j + c);
+							}
+
+							//for efficiency, exit if darkness > current 
+							if (tempSum > areaMin) {
+								c = 10000;
+								d = 10000;
+							}
+
+							colorCount++;
+						}
+					}//end darkness calculation
+
+					//is darker than last calculated area?
+					if (tempSum < areaMin) {
+
+							ROI = Point(j, i);
+							//cout << "tempsum = " << tempSum << " @ " << j << ", " << i << endl;
+							areaMin = tempSum;
+							count++;
+
+							finalColorCount = colorCount;
+						stDevMin = tempStDev;
 					}
-					else{
-						tempSum += I.at<uchar>(i + d, j + c);
-					}
 
-					//for efficiency, exit if darkness > current 
-					if (tempSum > areaMin){
-						c = 10000;
-						d = 10000;
-					}
+					//color a point
+					//I2.at<uchar>(i, j) = 255;
 
-					colorCount++;
-				}
-			}//end darkness calculation
-
-			//color with darkness level (heatmap)
-			//if ((255 * colorCount - tempSum) / colorCount > 220){
-			//	I2.at<Vec3b>(i, j)[0] = 0;
-			//	I2.at<Vec3b>(i, j)[1] = 0;
-			//	I2.at<Vec3b>(i, j)[2] = (255 * colorCount - tempSum) / colorCount;
-			//}
-
-			//is darker than last calculated area?
-			if (tempSum < areaMin){
-
-				//progress to stdev calculation if area was darker
-				//float stDev = 0;
-				//vector<float> data;
-
-				//for (int d2 = -widthSmall; d2 < widthSmall + 1; d2 = d2 + widthSmall / searchDivisorDev){
-				//	for (int c2 = -widthSmall; c2 < widthSmall + 1; c2 = c2 + widthSmall / searchDivisorDev){
-				//		data.push_back(I.at<uchar>(i + d2, j + c2));
-				//		//I2.at<Vec3b>(i, j)[0] = 0;
-				//		//I2.at<Vec3b>(i, j)[1] = 0;
-				//		//I2.at<Vec3b>(i, j)[2] = 255;
-				//	}
-				//}
-				//tempStDev = standard_deviation(&data[0], data.size());
-
-				//in our videos, pupils don't exceed y>160 or x>530, remove for videos where pupil could be anywhere on the screen 
-				if (i > 60 && j < 530){
-
-					ROI = Point(j, i);
-					//cout << "tempsum = " << tempSum << " @ " << j << ", " << i << endl;
-					areaMin = tempSum;
-					count++;
-
-					finalColorCount = colorCount;
-
-					//color points that are progressively darker
-					//I2.at<Vec3b>(ROI)[0] = 0;
-					//I2.at<Vec3b>(ROI)[1] = 0;
-					//I2.at<Vec3b>(ROI)[2] = 255;
-				}
-
-				stDevMin = tempStDev;
-			}
-
-		}//end outerX for
-	}//end outerY for
-
-	//std::cout << "min avg pixel value was " << areaMin / finalColorCount;
-
-	//float stDev = 0;
-	//vector<float> data;
-
-	//double test = stDevMin;
-	//cout.precision(5);
-	//cout << "stdev: " << fixed << test << "  darkness: " << areaMin << endl;
-
-	//cv::cvtColor(I, I, CV_GRAY2BGR);
-
+				}//end ignore corners code
+			}//end outerX for
+		}//end outerY for
+	
+	//imshow("debug", I2);
 	return ROI;
 }
 
@@ -907,7 +904,7 @@ vector<Point> getCandidates(std::vector<std::vector<cv::Point>>contours, int big
 		}
 	}
 	else{
-		cout << "contours.size was < 10. size = " << contours.size() << endl;
+		//cout << "contours.size was < 10. size = " << contours.size() << endl;
 	}
 
 	return allPts;
@@ -1006,32 +1003,6 @@ vector<Point> refinePoints(vector<Point> allPts, Mat gray, int checkThickness, i
 
 }//end point refinement
 
-bool badEllipseFilter(RotatedRect current, int maxSize){
 
-	bool isGood = true;
-
-	//test against last ttwo ellipse sizes and rotations, 
-	//if difference is over a certain size and angle threshold, set isGood to false 
-	if (current.size.width / current.size.height > 2 ||
-		current.size.height / current.size.width > 2 ||
-		current.size.height > maxSize ||
-		current.size.width > maxSize ||
-		current.size.height < 10 ||
-		current.size.width < 10 ||
-		current.size.width > maxSize ||
-		current.size.height > maxSize ||
-		//current.center.y < 40 ||
-		current.size.height / previousRect.size.height > 1.3 ||
-		previousRect.size.height / current.size.height > 1.3 ||
-		current.size.width / previousRect.size.width > 1.3 ||
-		previousRect.size.width / current.size.width > 1.3){
-		cout << "returning false" << endl;
-		isGood = false;
-	}
-
-	previousRect = current;
-
-	return isGood;
-}
 
 };
