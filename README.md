@@ -71,11 +71,12 @@ After the step, we get 3D eye tracking:
 Some debug keys are pre-assigned for a better control of the software:
 * `p`: Takes some more 2D pupil observations. Useful when estimated 3D eye model is incorrect due to not-well-distributed 2D observations
 * `r`: Resets the 3D eye model and 2D observations and restarts the initialization step
+* `x`: For stereo Pupil Labs eye trackers on a single USB cable - exits cleanly
 * `ESC`: Exit the program 	
 
 # Acknowledgements
 
-This program integrated/modified several existing codes. Especially, 
+This program integrated/modified several existing algorithms. Especially, 
 * [2D pupil detection code](https://github.com/YutaItoh/3D-Eye-Tracker/blob/master/main/pupilFitter.h) by [Jason Orlosky](http://www.jeoresearch.com/research)
 * [3D eye model optimization code](https://github.com/LeszekSwirski/singleeyefitter) (./singleeyefitter) by Leszek Swirski 
 * [Access to stereo Pupil Labs cameras](https://github.com/themrx/PupilCapture) by [Alexander Plopski](http://imd.naist.jp/people/alexanderplopski/)
