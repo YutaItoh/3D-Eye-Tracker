@@ -375,10 +375,11 @@ singleeyefitter::EyeModelFitter::Sphere EyeModelUpdater::eyeModelFilter(
 		singleeyefitter::EyeModelFitter::Sphere filteredEyeModel;
 		singleeyefitter::EyeModelFitter::Sphere eyeTemp(eye);
 
-		float filterFactor = 3;
+		float filterFactor = 10;
 
 		//check to see if new eye model is way different than originals and ignore if so
-		if (ignoreNewEye == false && (
+		if (ignoreNewEye == false && 
+			originalCalibratedEye && (
 			std::abs(eye.centre.x() - originalCalibratedEye.centre.x()) > filterFactor ||
 			std::abs(eye.centre.y() - originalCalibratedEye.centre.y()) > filterFactor ||
 			std::abs(eye.centre.z() - originalCalibratedEye.centre.z()) > filterFactor)){
