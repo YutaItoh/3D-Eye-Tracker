@@ -324,6 +324,10 @@ int main(int argc, char *argv[]){
 			switch (kKEY) {
 			case 'r':
 				eye_model_updaters[cam]->reset();
+				while (eyes[cam].size() > 1) {
+					eyes[cam].erase(eyes[cam].begin());
+				}
+				originalSet[cam] = false;
 				break;
 			case 'd':
 				pupilFitter.setDebug(true);
@@ -375,20 +379,25 @@ int main(int argc, char *argv[]){
 				if (eye_model_updaters[cam]->is_model_built()) {
 					ellipse_reliability = eye_model_updaters[cam]->compute_reliability(img, el, inlier_pts);
 					is_reliable = (ellipse_reliability > kReliabilityThreshold);
-										is_reliable = true;
-					
+					is_reliable = true;
+
 					//remove oldest observation, add new, and rebuild model (drift correction)
 					eye_model_updaters[cam]->rm_oldest_observation();
 					eye_model_updaters[cam]->add_observation(img_grey, el, inlier_pts, false);
 					eye_model_updaters[cam]->force_rebuild_model();
 
-					if (eyes[cam].size() > medianTotal * .8 && originalSet[cam] == false) {
+					if (eyes[cam].size() == medianTotal && originalSet[cam] == false) {
 						// happens once when model is built for the first time to establish eye-box
 						originalModels[cam] = eye_model_updaters[cam]->getEye();
 						originalEyeSizes[cam] = eye_tracker::toImgCoord(singleeyefitter::toRotatedRect(
 							singleeyefitter::project(eye_model_updaters[cam]->getEye(), focal_length)), img, 1.0f).size.height;
 						originalSet[cam] = true;
+						cout << "setting original for cam " << cam << endl;
+
 					}
+					//cout << "eyes[" << cam << "].size() was " << eyes[cam].size() << endl;
+					//cout << "medianTotal * .8 was " << medianTotal * .8 << endl;
+					//cout << "originalSet[cam] was " << originalSet[cam] << endl;
 				}
 				else { 
 					is_added = eye_model_updaters[cam]->add_observation(img_grey, el, inlier_pts, force_add);
@@ -441,7 +450,11 @@ int main(int argc, char *argv[]){
 								singleeyefitter::project(tempCircle, focal_length)), img, 1.0f); //projection of new 3D radius into 2D coordinates 
 
 							//note: radius of 0 returned from filter if model was bad
-							if (eyes[cam].size() > 0 && tempCircle.radius != 0 && std::abs(originalRadius.size.height - newRadius.size.height) < 40){ 
+							if (eyes[cam].size() > 0 && 
+								tempCircle.radius != 0 && 
+								std::abs(originalRadius.size.height - newRadius.size.height) < 40 &&
+								std::abs(originalRadius.center.x - newRadius.center.x) < 50 &&
+								std::abs(originalRadius.center.y - newRadius.center.y) < 50){
 								//2D projections of radii were non-zero and did not differ significantly from originals
 								medianCircle = tempCircle; //pass on for model update
 								lastGoodEyes[cam] = tempCircle;  //update last good eye (for possible use in next frame)
@@ -513,6 +526,7 @@ int main(int argc, char *argv[]){
 			myfile << "" << eyeVector[0].str() << "," << eyeVector[1].str() << endl;
 			myfile.close();
 		}
+
 
 		// Compute FPS
 		//frame_rate_counter.count();
