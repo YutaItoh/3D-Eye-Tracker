@@ -235,9 +235,13 @@ int main(int argc, char *argv[]){
 	bool is_run = true;
 	bool isSaccade = false;
 	bool isBlink = false;
+	bool originalSet[2] = { false, false };
+	bool prevSaccade = false; //added if a saccade value was detected in the previous frame
 	int blinkCount = 0; //holds the number of blinks for this video
 	int saccadeCount = 0; //holds the number of saccades for this video
-	bool prevSaccade = false; //added if a saccade value was detected in the previous frame
+	int medianTotal = 50;
+	double originalEyeSizes[2] = { 0, 0 }; //stores original 2D radii 
+	double camSpheres[6] = { 0, 0, 0, 0, 0, 0 }; //holds left cam (0-2) and right cam (3-5) sphere centers
 	vector<float> timeData; //vector holding timestamps in ms corresponding to gaze data for N frames
 	vector<float> xData; //corresponding x eye rotations for N frames
 	vector<float> yData; //corresponding y eye rotations for N frames
@@ -245,10 +249,7 @@ int main(int argc, char *argv[]){
 	vector<singleeyefitter::EyeModelFitter::Sphere> eyes[2]; //holds a vector of spheres for the eye model filter (cam 0)
 	singleeyefitter::EyeModelFitter::Sphere lastGoodEyes[2];
 	singleeyefitter::EyeModelFitter::Sphere originalModels[2];
-	double originalEyeSizes[2] = { 0, 0 }; //stores original 2D radii 
-	int medianTotal = 120;
-	double camSpheres[6] = { 0, 0, 0, 0, 0, 0 }; //holds left cam (0-2) and right cam (3-5) sphere centers
-	//double cam1Sphere[3] = { 0, 0, 0 };
+
 
 	//print instructions
 	cout << endl;
@@ -256,6 +257,8 @@ int main(int argc, char *argv[]){
 	cout << endl;
 	cout << "Keyboard options (with either of the eye camera windows selected) include: " << endl;
 	cout << "r: Resets the original eye models - do this if the initial model creation results in a poor fit. " << endl;
+	cout << "d: debug mode - shows returned pupil and candidate points " << endl;
+	cout << "o: debug mode off" << endl;
 	cout << "x: Cleanly exists the stream - if you accidentally close the window using the mouse, you may need to unplug and replug your pupil labs USB cable" << endl;
 	cout << endl;
 	cout << "Edit the 'input_mode' variable to select the type of camera you are using (default is the stereo pupil labs rig on a single USB)." << endl;
@@ -322,6 +325,12 @@ int main(int argc, char *argv[]){
 			case 'r':
 				eye_model_updaters[cam]->reset();
 				break;
+			case 'd':
+				pupilFitter.setDebug(true);
+				break;
+			case 'o':
+				pupilFitter.setDebug(false);
+				break;
 			case 'p':
 				eye_model_updaters[cam]->add_fitter_max_count(10);
 				break;
@@ -344,8 +353,9 @@ int main(int argc, char *argv[]){
 			cv::cvtColor(img, img_grey, CV_RGB2GRAY);
 			cv::RotatedRect rr_pf;
 
-			bool is_pupil_found = pupilFitter.pupilAreaFitRR(img_grey, rr_pf, inlier_pts, 15, 0, 0, 15, 35, 240, 6);
+			bool is_pupil_found = pupilFitter.pupilAreaFitRR(img_grey, rr_pf, inlier_pts, 15, 0, 0, 15, 35, 250, 6);
 			is_pupil_found = pupilFitter.badEllipseFilter(rr_pf, 250);
+
 			//cout << "pupil fitter time: " << float(clock() - begin_time) / CLOCKS_PER_SEC << endl;
 
 			const clock_t begin_time2 = clock();
@@ -372,15 +382,16 @@ int main(int argc, char *argv[]){
 					eye_model_updaters[cam]->add_observation(img_grey, el, inlier_pts, false);
 					eye_model_updaters[cam]->force_rebuild_model();
 
-				}
-				else { 
-					is_added = eye_model_updaters[cam]->add_observation(img_grey, el, inlier_pts, force_add);
-					if (eye_model_updaters[cam]->is_model_built()) {
+					if (eyes[cam].size() > medianTotal * .8 && originalSet[cam] == false) {
 						// happens once when model is built for the first time to establish eye-box
 						originalModels[cam] = eye_model_updaters[cam]->getEye();
 						originalEyeSizes[cam] = eye_tracker::toImgCoord(singleeyefitter::toRotatedRect(
 							singleeyefitter::project(eye_model_updaters[cam]->getEye(), focal_length)), img, 1.0f).size.height;
+						originalSet[cam] = true;
 					}
+				}
+				else { 
+					is_added = eye_model_updaters[cam]->add_observation(img_grey, el, inlier_pts, force_add);
 				}
 			}
 
@@ -404,7 +415,7 @@ int main(int argc, char *argv[]){
 						//}
 
 						eye_model_updaters[cam]->render(img_rgb_debug, el, inlier_pts);
-						eye_model_updaters[cam]->set_fitter_max_count(50); //manually sets max count
+						eye_model_updaters[cam]->set_fitter_max_count(60); //manually sets max count
 						//3D filtered eye model
 						curr_circle = eye_model_updaters[cam]->unproject(img, el, inlier_pts);
 						// 3D pupil (relative to filtered eye model)
@@ -420,7 +431,7 @@ int main(int argc, char *argv[]){
 							//insert current eye into filter and return a filtered model (very important for new model accuracy)
 							singleeyefitter::Sphere<double> tempCircle = 
 								eye_model_updaters[cam]->eyeModelFilter(eye_model_updaters[cam]->fitter().eye, eyes[cam], medianTotal, ignoreNewEye, originalModels[cam]);
-							
+
 							singleeyefitter::EyeModelFitter::Sphere filteredEye(tempCircle.centre, tempCircle.radius);
 							cv::RotatedRect rr_eye = eye_tracker::toImgCoord(singleeyefitter::toRotatedRect(
 								singleeyefitter::project(filteredEye, focal_length)), img, 1.0f);
@@ -430,7 +441,7 @@ int main(int argc, char *argv[]){
 								singleeyefitter::project(tempCircle, focal_length)), img, 1.0f); //projection of new 3D radius into 2D coordinates 
 
 							//note: radius of 0 returned from filter if model was bad
-							if (eyes[cam].size() > 0 && tempCircle.radius != 0 && std::abs(originalRadius.size.height - newRadius.size.height) < 30){ 
+							if (eyes[cam].size() > 0 && tempCircle.radius != 0 && std::abs(originalRadius.size.height - newRadius.size.height) < 40){ 
 								//2D projections of radii were non-zero and did not differ significantly from originals
 								medianCircle = tempCircle; //pass on for model update
 								lastGoodEyes[cam] = tempCircle;  //update last good eye (for possible use in next frame)
