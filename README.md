@@ -62,7 +62,7 @@ Once the program started, it initializes a 3D eye model from 2D pupil observatio
 
 In this initialization step, a user needs to smoothly rotate his/her eye to capture various 2D shapes of the eye.
 
-After the step, we get 3D eye tracking (first image). The current version updates the eye model over time (drift correction), represented by the white circle (second image). When these outputs are fed into Unity and calibrated, you will see the output in the third image.  
+After the step, we get 3D eye tracking as shown in the first image on the left. The current version updates the eye model over time (drift correction), represented by the white circle and red ray in the second image. When these outputs are fed into Unity and calibrated, you will see the output in the third image.  
 
 <img src="https://raw.githubusercontent.com/YutaItoh/3D-Eye-Tracker/master/docs/runtime-3.png" width="200px" /><img src="https://github.com/YutaItoh/3D-Eye-Tracker/blob/pupil_stereo_support/docs/drift_correction.PNG" width="200px" /><img src="https://github.com/YutaItoh/3D-Eye-Tracker/blob/pupil_stereo_support/docs/unity_output.PNG" width="200px" />
 
