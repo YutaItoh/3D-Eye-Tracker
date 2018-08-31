@@ -77,6 +77,6 @@ Some debug keys are pre-assigned for a better control of the software:
 # Acknowledgements
 
 This program integrated/modified several existing algorithms. Especially, 
-* [2D pupil detection code](https://github.com/YutaItoh/3D-Eye-Tracker/blob/master/main/pupilFitter.h) by [Jason Orlosky](http://www.jeoresearch.com/research)
+* [2D pupil detection code](https://github.com/YutaItoh/3D-Eye-Tracker/blob/master/main/pupilFitter.h) and drift correction by [Jason Orlosky](http://www.jeoresearch.com/research)
 * [3D eye model optimization code](https://github.com/LeszekSwirski/singleeyefitter) (./singleeyefitter) by Leszek Swirski 
 * [Access to stereo Pupil Labs cameras](https://github.com/themrx/PupilCapture) by [Alexander Plopski](http://imd.naist.jp/people/alexanderplopski/)
