@@ -62,9 +62,9 @@ Once the program started, it initializes a 3D eye model from 2D pupil observatio
 
 In this initialization step, a user needs to smoothly rotate his/her eye to capture various 2D shapes of the eye.
 
-After the step, we get 3D eye tracking:
+After the step, we get 3D eye tracking. The current version updates the eye model over time (drift correction), represented by the white circle. 
 
-<img src="https://raw.githubusercontent.com/YutaItoh/3D-Eye-Tracker/master/docs/runtime-3.png" width="200px" />
+<img src="https://raw.githubusercontent.com/YutaItoh/3D-Eye-Tracker/master/docs/runtime-3.png" width="200px" /><img src="https://github.com/YutaItoh/3D-Eye-Tracker/blob/pupil_stereo_support/docs/drift_correction.PNG" width="200px" />
 
 ### Tips:
 
