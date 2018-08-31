@@ -18,4 +18,5 @@ Unity and 5-Point Calibration:
 1) Once a successful 5-point calibration has been completed, you can use the 'q' key for a quick 1-point recalibration. This will only present a single dot at screen center. The second press of 'q' will complete the 1-point calibration. 
 
 Note1: a successful calibration on the c++ side is necessary for an accurate Unity calibration. If the calibration seems to fail multiple times, try re-calibrating on the c++ side using the 'r' key with the eye camera windows highlighted. 
+
 Note2: If using the Pupil Labs stereo cameras on a single USB bus, use 'x' to exit cleanly. Otherwise you may have to re-plug in your USB cable.
