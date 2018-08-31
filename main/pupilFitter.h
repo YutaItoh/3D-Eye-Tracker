@@ -323,7 +323,7 @@ bool pupilAreaFitRR(Mat &gray, RotatedRect &rr, vector<Point2f> &allPtsReturn,
 			current.size.width < 25 ||
 			current.size.width > maxSize ||
 			current.size.height > maxSize ||
-			current.size.height + current.size.width > 400) { 
+			current.size.height + current.size.width > 2 * maxSize) { 
 			isGood = false;
 		}
 
