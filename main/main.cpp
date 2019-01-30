@@ -323,11 +323,14 @@ int main(int argc, char *argv[]){
 
 			switch (kKEY) {
 			case 'r':
-				eye_model_updaters[cam]->reset();
-				while (eyes[cam].size() > 1) {
-					eyes[cam].erase(eyes[cam].begin());
+				for(size_t cam = 0; cam < kCameraNums; cam++) {
+					eye_model_updaters[cam]->reset();
+					while (eyes[cam].size() > 0) {
+						eyes[cam].erase(eyes[cam].begin());
+					}
+					originalSet[cam] = false;
 				}
-				originalSet[cam] = false;
+				cout << "resetting model" << endl;
 				break;
 			case 'd':
 				pupilFitter.setDebug(true);
@@ -392,7 +395,7 @@ int main(int argc, char *argv[]){
 						originalEyeSizes[cam] = eye_tracker::toImgCoord(singleeyefitter::toRotatedRect(
 							singleeyefitter::project(eye_model_updaters[cam]->getEye(), focal_length)), img, 1.0f).size.height;
 						originalSet[cam] = true;
-						cout << "setting original for cam " << cam << endl;
+						cout << "setting eyebox for cam " << cam << endl;
 
 					}
 					//cout << "eyes[" << cam << "].size() was " << eyes[cam].size() << endl;
@@ -406,7 +409,6 @@ int main(int argc, char *argv[]){
 
 			// Visualize results
 			if (kVisualization) {
-
 				// 2D pupil
 				if (is_pupil_found) {
 					cv::ellipse(img_rgb_debug, rr_pf, cv::Vec3b(255, 128, 0), 1);
@@ -440,7 +442,10 @@ int main(int argc, char *argv[]){
 							//insert current eye into filter and return a filtered model (very important for new model accuracy)
 							singleeyefitter::Sphere<double> tempCircle = 
 								eye_model_updaters[cam]->eyeModelFilter(eye_model_updaters[cam]->fitter().eye, eyes[cam], medianTotal, ignoreNewEye, originalModels[cam]);
-
+							if (originalSet[cam] == false){//don't filter if rebuilding model
+								tempCircle = eye_model_updaters[cam]->fitter().eye;
+								eyes[cam].push_back(eye_model_updaters[cam]->fitter().eye);
+							}
 							singleeyefitter::EyeModelFitter::Sphere filteredEye(tempCircle.centre, tempCircle.radius);
 							cv::RotatedRect rr_eye = eye_tracker::toImgCoord(singleeyefitter::toRotatedRect(
 								singleeyefitter::project(filteredEye, focal_length)), img, 1.0f);
@@ -460,7 +465,12 @@ int main(int argc, char *argv[]){
 								lastGoodEyes[cam] = tempCircle;  //update last good eye (for possible use in next frame)
 							}
 							else if(lastGoodEyes[cam].radius != 0){ //filter returned 0
-								medianCircle = lastGoodEyes[cam]; //use last known good eye model (last frame)
+								if (originalSet[cam] == true) {
+									medianCircle = lastGoodEyes[cam]; //use last known good eye model (last frame)
+								}
+								else {
+									medianCircle = tempCircle;
+								}
 							}
 						}
 						else if (lastGoodEyes[cam].radius != 0){ //new model not built
