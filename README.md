@@ -4,6 +4,8 @@ This software aims to provide an easy-to-compile C++ implementation of a 3D eye-
 
 Our software is designed for a wearable eye-tracking scnenario where a user wears a headset with an eye camera(s) that is equipped with infrared (IR) illuminations. The camera can capture close-up shots of the user's eyes.
 
+If you need a near-eye IR camera, instructions for building your for under $100 can be found here: https://www.youtube.com/watch?v=8lZqCMRMtC8
+
 ![headset_and_image](https://raw.githubusercontent.com/YutaItoh/3D-Eye-Tracker/master/docs/headset_and_image.png)
 
 With this software, you can obtain the following information:
